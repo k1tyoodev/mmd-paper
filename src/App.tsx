@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, TransitionEvent } from "react";
-import { Grid2X2 } from "lucide-react";
+import { Grid2X2, Moon, Sun } from "lucide-react";
 import MermaidEditor, { type MermaidEditorHandle } from "@/components/MermaidEditor";
 import MermaidPreview from "@/components/MermaidPreview";
 import { preloadRenderer, useBeautifulRenderer } from "@/hooks/useBeautifulRenderer";
@@ -249,10 +249,14 @@ function Header({
           className="header-icon-button theme-toggle-button"
           aria-label="Toggle theme"
           aria-pressed={colorMode === "dark"}
-          title="Toggle theme"
+          title={colorMode === "dark" ? "Switch to light theme" : "Switch to dark theme"}
           onClick={onToggleColorMode}
         >
-          <span aria-hidden="true">◐</span>
+          {colorMode === "dark" ? (
+            <Sun size={14} strokeWidth={1.7} aria-hidden="true" />
+          ) : (
+            <Moon size={14} strokeWidth={1.7} aria-hidden="true" />
+          )}
         </button>
       </div>
     </header>

@@ -280,6 +280,7 @@ textarea {
   width: 28px;
   height: 28px;
   padding: 0;
+  border: 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1;
@@ -642,6 +643,10 @@ textarea {
   min-width: max-content;
   cursor: default;
   pointer-events: auto;
+}
+
+.preview-viewport-controls button {
+  border: 0;
 }
 
 .preview-toolbar-right {

@@ -8,17 +8,21 @@ import {
 import { clamp } from "@/utils/color";
 
 const STORAGE_KEY = "mmd-paper-editor-state-v1";
-const DEFAULT_CODE = `stateDiagram-v2
-  direction LR
-  [*] --> Input
-  Input --> Parse: DSL
-  Parse --> Layout: AST
-  Layout --> SVG: Vector
-  Layout --> ASCII: Text
-  SVG --> Theme
-  ASCII --> Theme
-  Theme --> Output
-  Output --> [*]`;
+const DEFAULT_CODE = `sequenceDiagram
+  actor U as User
+  participant App as Client App
+  participant Auth as Auth Server
+  participant API as Resource API
+  U->>App: Click Login
+  App->>Auth: Authorization request
+  Auth->>U: Login page
+  U->>Auth: Credentials
+  Auth-->>App: Authorization code
+  App->>Auth: Exchange code for token
+  Auth-->>App: Access token
+  App->>API: Request + token
+  API-->>App: Protected resource
+  App-->>U: Display data`;
 
 export const DEFAULT_EDITOR_STATE: EditorState = {
   code: DEFAULT_CODE,
