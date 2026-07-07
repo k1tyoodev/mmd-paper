@@ -4,7 +4,12 @@ import type { RenderOptions as BeautifulRenderOptions } from "beautiful-mermaid"
 import { BASE_FONT_FAMILY, MONO_FONT_FAMILY, type DiagramTokens } from "@/theme/vercel";
 import { parseHexColor, toHexChannel } from "@/utils/color";
 import { normalizeTextOutputHtmlForDisplay } from "@/utils/textOutputDisplay";
-import type { RenderConfig, RenderOutputMode, RenderState, TextColorMode } from "@/types/playground";
+import type {
+  RenderConfig,
+  RenderOutputMode,
+  RenderState,
+  TextColorMode,
+} from "@/types/playground";
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {

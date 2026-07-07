@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+Symbols+2&display=swap');
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+Symbols+2&display=swap");
+@import "tailwindcss";
 
 :root {
   --t-bg: #ffffff;
@@ -21,15 +21,15 @@
   --focus: #006bff;
   color-scheme: light;
   font-family:
-    'Geist',
+    "Geist",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
 }
 
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   --bg: #000000;
   --panel: #000000;
   --paper: #000000;
@@ -106,7 +106,7 @@ select {
   background: var(--panel);
 }
 
-input[type='checkbox'] {
+input[type="checkbox"] {
   width: 16px;
   height: 16px;
   margin: 0;
@@ -119,8 +119,8 @@ input[type='checkbox'] {
   select,
   textarea,
   a[href],
-  [role='button'],
-  [tabindex]:not([tabindex='-1'])
+  [role="button"],
+  [tabindex]:not([tabindex="-1"])
 ):focus {
   outline: none;
 }
@@ -131,8 +131,8 @@ input[type='checkbox'] {
   select,
   textarea,
   a[href],
-  [role='button'],
-  [tabindex]:not([tabindex='-1'])
+  [role="button"],
+  [tabindex]:not([tabindex="-1"])
 ):focus-visible {
   outline: 2px solid color-mix(in srgb, var(--focus) 72%, transparent);
   outline-offset: 2px;
@@ -141,7 +141,7 @@ input[type='checkbox'] {
 code,
 pre,
 textarea {
-  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .app-shell {
@@ -175,7 +175,7 @@ textarea {
 
 .mmd-title {
   flex: 0 0 auto;
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: "Instrument Serif", Georgia, serif;
   font-size: 22px;
   font-weight: 400;
   line-height: 1;
@@ -187,7 +187,7 @@ textarea {
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: "Instrument Serif", Georgia, serif;
   font-size: 15px;
   font-weight: 400;
   line-height: 1;
@@ -220,7 +220,7 @@ textarea {
   color: var(--fg);
 }
 
-.transparent-toggle-button[aria-pressed='true'] {
+.transparent-toggle-button[aria-pressed="true"] {
   color: var(--fg);
   background: var(--hoverbg);
 }
@@ -308,7 +308,7 @@ textarea {
 }
 
 .divider::before {
-  content: '';
+  content: "";
   position: absolute;
   inset-block: 0;
   left: 50%;
@@ -318,7 +318,7 @@ textarea {
 }
 
 .divider::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -512,7 +512,7 @@ textarea {
     0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-:root[data-theme='dark'] .export-menu-list {
+:root[data-theme="dark"] .export-menu-list {
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.42),
     0 1px 2px rgba(0, 0, 0, 0.45);
@@ -638,7 +638,7 @@ textarea {
 }
 
 .segmented-button:hover:enabled,
-.segmented-button[data-active='true'] {
+.segmented-button[data-active="true"] {
   color: var(--fg);
   background: var(--hoverbg);
 }

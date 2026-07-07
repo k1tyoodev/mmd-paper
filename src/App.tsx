@@ -8,7 +8,12 @@ import { usePlaygroundState } from "@/hooks/usePlaygroundState";
 import { useSplitPane } from "@/hooks/useSplitPane";
 import { useTextOutputWarnings } from "@/hooks/useTextOutputWarnings";
 import { VERCEL_DIAGRAM_TOKENS, type ColorMode } from "@/theme/vercel";
-import type { EditorState, RenderConfig, RenderOutputMode, TextColorMode } from "@/types/playground";
+import type {
+  EditorState,
+  RenderConfig,
+  RenderOutputMode,
+  TextColorMode,
+} from "@/types/playground";
 import { TEXT_COLOR_MODE_OPTIONS } from "@/types/playground";
 import { resolveUiPaletteWithFallback } from "@/utils/contrast";
 

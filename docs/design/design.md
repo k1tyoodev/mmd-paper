@@ -499,4 +499,3 @@ Copy is part of the design; keep it precise and free of filler.
 - Don’t swap `gray-*` for `background-*`; they are separate scales.
 
 Read Frog
-
