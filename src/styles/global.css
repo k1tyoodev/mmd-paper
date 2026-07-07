@@ -2,23 +2,63 @@
 @import "tailwindcss";
 
 :root {
+  --geist-background-100: #ffffff;
+  --geist-background-200: #fafafa;
+  --geist-gray-100: #f2f2f2;
+  --geist-gray-200: #ebebeb;
+  --geist-gray-300: #e6e6e6;
+  --geist-gray-400: #eaeaea;
+  --geist-gray-500: #c9c9c9;
+  --geist-gray-600: #a8a8a8;
+  --geist-gray-700: #8f8f8f;
+  --geist-gray-800: #7d7d7d;
+  --geist-gray-900: #4d4d4d;
+  --geist-gray-1000: #171717;
+  --geist-gray-alpha-100: #0000000d;
+  --geist-gray-alpha-200: #00000015;
+  --geist-gray-alpha-300: #0000001a;
+  --geist-gray-alpha-400: #00000014;
+  --geist-gray-alpha-500: #00000036;
+  --geist-gray-alpha-600: #0000003d;
+  --geist-gray-alpha-700: #00000070;
+  --geist-blue-700: #006bff;
+  --geist-blue-900: #005ff2;
+  --geist-red-100: #ffeeef;
+  --geist-red-800: #ea001d;
+  --geist-red-900: #d8001b;
+  --geist-amber-100: #fff6de;
+  --geist-amber-900: #aa4d00;
+  --geist-green-700: #28a948;
+  --radius-control: 6px;
+  --radius-menu: 12px;
+  --radius-fullscreen: 16px;
+  --radius-pill: 9999px;
+  --shadow-popover:
+    0 1px 1px rgba(0, 0, 0, 0.02), 0 4px 8px -4px rgba(0, 0, 0, 0.04),
+    0 16px 24px -8px rgba(0, 0, 0, 0.06);
+  --motion-ease: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --motion-state: 150ms;
+  --motion-popover: 200ms;
   --t-bg: #ffffff;
   --t-fg: #171717;
   --t-accent: #006bff;
   --control-radius: 6px;
-  --bg: #ffffff;
-  --panel: #ffffff;
-  --paper: #ffffff;
-  --fg: #171717;
-  --muted: #8f8f8f;
-  --subtle: #a8a8a8;
-  --border: #eaeaea;
-  --hoverbg: #f2f2f2;
-  --danger-bg: #ffeeef;
-  --danger-fg: #ea001d;
-  --warning-bg: #fff6de;
-  --warning-fg: #aa4d00;
-  --focus: #006bff;
+  --bg: var(--geist-background-100);
+  --panel: var(--geist-background-100);
+  --paper: var(--geist-background-100);
+  --fg: var(--geist-gray-1000);
+  --muted: var(--geist-gray-700);
+  --subtle: var(--geist-gray-600);
+  --border: var(--geist-gray-alpha-400);
+  --border-hover: var(--geist-gray-alpha-500);
+  --border-active: var(--geist-gray-alpha-600);
+  --hoverbg: var(--geist-gray-alpha-100);
+  --activebg: var(--geist-gray-alpha-200);
+  --danger-bg: var(--geist-red-100);
+  --danger-fg: var(--geist-red-800);
+  --warning-bg: var(--geist-amber-100);
+  --warning-fg: var(--geist-amber-900);
+  --focus: var(--geist-blue-700);
   color-scheme: light;
   font-family:
     "Geist",
@@ -30,19 +70,44 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #000000;
-  --panel: #000000;
-  --paper: #000000;
-  --fg: #ededed;
-  --muted: #a0a0a0;
-  --subtle: #878787;
-  --border: #2e2e2e;
-  --hoverbg: #1a1a1a;
-  --danger-bg: #330a11;
-  --danger-fg: #ff565f;
-  --warning-bg: #2a1700;
-  --warning-fg: #ff9300;
-  --focus: #47a8ff;
+  --geist-background-100: #000000;
+  --geist-background-200: #000000;
+  --geist-gray-100: #1a1a1a;
+  --geist-gray-200: #1f1f1f;
+  --geist-gray-300: #292929;
+  --geist-gray-400: #2e2e2e;
+  --geist-gray-500: #454545;
+  --geist-gray-600: #878787;
+  --geist-gray-700: #8f8f8f;
+  --geist-gray-800: #7d7d7d;
+  --geist-gray-900: #a0a0a0;
+  --geist-gray-1000: #ededed;
+  --geist-gray-alpha-100: #ffffff12;
+  --geist-gray-alpha-200: #ffffff17;
+  --geist-gray-alpha-300: #ffffff21;
+  --geist-gray-alpha-400: #ffffff24;
+  --geist-gray-alpha-500: #ffffff3d;
+  --geist-gray-alpha-600: #ffffff82;
+  --geist-gray-alpha-700: #ffffff8a;
+  --geist-blue-700: #006efe;
+  --geist-blue-900: #47a8ff;
+  --geist-red-100: #330a11;
+  --geist-red-800: #e2162a;
+  --geist-red-900: #ff565f;
+  --geist-amber-100: #2a1700;
+  --geist-amber-900: #ff9300;
+  --geist-green-700: #00ac3a;
+  --bg: var(--geist-background-100);
+  --panel: var(--geist-background-100);
+  --paper: var(--geist-background-100);
+  --fg: var(--geist-gray-1000);
+  --muted: var(--geist-gray-900);
+  --subtle: var(--geist-gray-600);
+  --danger-bg: var(--geist-red-100);
+  --danger-fg: var(--geist-red-900);
+  --warning-bg: var(--geist-amber-100);
+  --warning-fg: var(--geist-amber-900);
+  --focus: var(--geist-blue-900);
   color-scheme: dark;
 }
 
@@ -62,7 +127,8 @@ body {
   overflow: hidden;
   color: var(--fg);
   background: var(--bg);
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 20px;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
 }
@@ -81,18 +147,19 @@ textarea {
 
 button {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: transparent;
   cursor: pointer;
   transition:
-    background-color 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease,
-    opacity 120ms ease;
+    background-color var(--motion-state) var(--motion-ease),
+    border-color var(--motion-state) var(--motion-ease),
+    color var(--motion-state) var(--motion-ease),
+    opacity var(--motion-state) var(--motion-ease);
 }
 
 button:hover:enabled {
   background: var(--hoverbg);
+  border-color: var(--border-hover);
 }
 
 button:disabled {
@@ -102,7 +169,7 @@ button:disabled {
 
 select {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: var(--panel);
 }
 
@@ -134,8 +201,10 @@ input[type="checkbox"] {
   [role="button"],
   [tabindex]:not([tabindex="-1"])
 ):focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--focus) 72%, transparent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--focus);
 }
 
 code,
@@ -240,7 +309,7 @@ textarea {
   width: 100%;
   height: 100%;
   min-height: 0;
-  transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: grid-template-columns var(--motion-popover) var(--motion-ease);
 }
 
 .editor-preview-workspace.workspace-dragging {
@@ -254,8 +323,8 @@ textarea {
   grid-row: 1;
   overflow: hidden;
   transition:
-    opacity 140ms ease,
-    filter 140ms ease;
+    opacity var(--motion-state) var(--motion-ease),
+    filter var(--motion-state) var(--motion-ease);
 }
 
 .editor-pane {
@@ -324,15 +393,15 @@ textarea {
   left: 50%;
   width: 3px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transform: translate(-50%, -50%);
   background: color-mix(in srgb, var(--muted) 76%, transparent);
   opacity: 0.56;
   transition:
-    width 120ms ease,
-    height 120ms ease,
-    opacity 120ms ease,
-    background-color 120ms ease;
+    width var(--motion-state) var(--motion-ease),
+    height var(--motion-state) var(--motion-ease),
+    opacity var(--motion-state) var(--motion-ease),
+    background-color var(--motion-state) var(--motion-ease);
 }
 
 .divider:hover::after,
@@ -403,9 +472,10 @@ textarea {
 
 .panel-header h2 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: -0.28px;
 }
 
 .editor-shell {
@@ -448,7 +518,7 @@ textarea {
 
 .skeleton-stack span {
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--fg) 10%, transparent);
 }
 
@@ -494,6 +564,7 @@ textarea {
   padding: 0 9px;
   color: var(--fg);
   background: var(--panel);
+  transition: none;
 }
 
 .export-menu-list {
@@ -505,17 +576,9 @@ textarea {
   min-width: 168px;
   padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-menu);
   background: var(--panel);
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-:root[data-theme="dark"] .export-menu-list {
-  box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.42),
-    0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-popover);
 }
 
 .export-menu-list button {
@@ -525,6 +588,7 @@ textarea {
   padding: 0 9px;
   color: var(--fg);
   text-align: left;
+  transition: none;
 }
 
 .preview-stage {
@@ -600,7 +664,7 @@ textarea {
   align-items: center;
   justify-content: center;
   min-height: 26px;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   color: var(--muted);
   background: var(--panel);
 }
@@ -627,6 +691,8 @@ textarea {
   border: 0;
   border-radius: 0;
   padding: 0 8px;
+  color: var(--geist-gray-700);
+  transition: none;
 }
 
 .segmented-button:first-child {
@@ -637,10 +703,18 @@ textarea {
   border-radius: 0 var(--segmented-button-radius) var(--segmented-button-radius) 0;
 }
 
-.segmented-button:hover:enabled,
-.segmented-button[data-active="true"] {
-  color: var(--fg);
+.segmented-button:hover:enabled {
+  color: var(--geist-gray-1000);
   background: var(--hoverbg);
+}
+
+.segmented-button[data-active="true"] {
+  color: var(--geist-gray-1000);
+  background: var(--hoverbg);
+}
+
+.segmented-button[data-active="true"]:hover:enabled {
+  color: var(--geist-gray-1000);
 }
 
 .preview-viewport {
@@ -682,6 +756,7 @@ textarea {
   width: 100vw;
   height: 100vh;
   min-height: 100vh;
+  border-radius: var(--radius-fullscreen);
 }
 
 .content-canvas {
@@ -726,7 +801,7 @@ textarea {
   gap: 8px;
   margin: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-menu);
   padding: 10px 12px;
   background: var(--panel);
   color: var(--muted);
@@ -778,15 +853,13 @@ textarea {
   left: 50%;
   max-width: min(80vw, 440px);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-menu);
   padding: 7px 10px;
   transform: translateX(-50%);
   overflow: hidden;
   color: var(--fg);
   background: var(--panel);
-  box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-popover);
   font-size: 12px;
   line-height: 1;
   text-overflow: ellipsis;
@@ -795,7 +868,7 @@ textarea {
 }
 
 .toast-success {
-  border-color: color-mix(in srgb, #28a948 42%, var(--border));
+  border-color: color-mix(in srgb, var(--geist-green-700) 42%, var(--border));
 }
 
 .toast-warning {
@@ -806,7 +879,17 @@ textarea {
   border-color: color-mix(in srgb, var(--danger-fg) 46%, var(--border));
 }
 
-@media (max-width: 760px) {
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 960px) {
   .mmd-header {
     padding: 0 12px;
   }

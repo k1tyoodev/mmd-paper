@@ -57,9 +57,9 @@ export const RENDER_OUTPUT_MODE_OPTIONS: Array<{ label: string; value: RenderOut
 ];
 
 export const TEXT_COLOR_MODE_OPTIONS: Array<{ label: string; value: TextColorMode }> = [
-  { label: "plain text", value: "none" },
+  { label: "Plain Text", value: "none" },
   { label: "ANSI 16", value: "ansi16" },
   { label: "ANSI 256", value: "ansi256" },
-  { label: "true color", value: "truecolor" },
+  { label: "True Color", value: "truecolor" },
   { label: "HTML", value: "html" },
 ];

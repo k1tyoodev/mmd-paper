@@ -116,13 +116,13 @@ function resolveHexColor(color: string): string | null {
 function buildAsciiThemeFromTokens(tokens: DiagramTokens): AsciiThemeValues {
   return {
     fg: tokens.fg,
-    border: tokens.border,
+    border: tokens.solidBorder,
     line: tokens.line,
     arrow: tokens.accent,
     accent: tokens.accent,
     bg: tokens.bg,
     corner: tokens.line,
-    junction: tokens.border,
+    junction: tokens.solidBorder,
   };
 }
 
