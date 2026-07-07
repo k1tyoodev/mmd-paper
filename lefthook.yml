@@ -1,0 +1,9 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: oxfmt
+      glob: "*.{ts,tsx,js,mjs,cjs,json,css}"
+      run: vp exec oxfmt {staged_files} && git add {staged_files}
+    - name: oxlint
+      glob: "*.{ts,tsx,js,mjs,cjs}"
+      run: vp lint --fix {staged_files} && git add {staged_files}
