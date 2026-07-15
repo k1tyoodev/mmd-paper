@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, TransitionEvent } from "react";
-import { Moon, Sun } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, Info, Moon, Sun } from "lucide-react";
 import MermaidEditor, {
   type EditorHistoryState,
   type MermaidEditorHandle,
@@ -634,6 +634,16 @@ function App() {
 
       {notice ? (
         <div className={`toast toast-${notice.tone}`} role="status">
+          {notice.tone === "success" ? (
+            <Check size={14} strokeWidth={2} aria-hidden="true" />
+          ) : null}
+          {notice.tone === "error" ? (
+            <AlertCircle size={14} strokeWidth={2} aria-hidden="true" />
+          ) : null}
+          {notice.tone === "warning" ? (
+            <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" />
+          ) : null}
+          {notice.tone === "info" ? <Info size={14} strokeWidth={2} aria-hidden="true" /> : null}
           {notice.message}
         </div>
       ) : null}
