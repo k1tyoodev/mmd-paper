@@ -1,4 +1,4 @@
-import { renderMermaidASCII } from 'beautiful-mermaid';
+import { renderMermaidASCII } from "beautiful-mermaid";
 
 const code = `stateDiagram-v2
     [*] --> A
@@ -6,16 +6,16 @@ const code = `stateDiagram-v2
 
 const result = renderMermaidASCII(code, {
   useAscii: false,
-  colorMode: 'none',
+  colorMode: "none",
   theme: {
-    fg: '#171717',
-    border: '#eaeaea',
-    line: '#4d4d4d',
-    arrow: '#006bff',
-    accent: '#006bff',
-    bg: '#ffffff',
-    corner: '#4d4d4d',
-    junction: '#eaeaea',
+    fg: "#171717",
+    border: "#eaeaea",
+    line: "#4d4d4d",
+    arrow: "#006bff",
+    accent: "#006bff",
+    bg: "#ffffff",
+    corner: "#4d4d4d",
+    junction: "#eaeaea",
   },
 });
 
