@@ -4,14 +4,28 @@ import {
   ChevronDown,
   CircleX,
   Copy,
+  Grid2X2,
   Info,
+  Keyboard,
   Maximize2,
   Minimize2,
+  Minus,
+  Plus,
+  Redo2,
   Scan,
+  Undo2,
 } from "lucide-react";
+import PreviewShortcutsPanel from "@/components/PreviewShortcutsPanel";
 import { RENDER_OUTPUT_MODE_OPTIONS, TEXT_COLOR_MODE_OPTIONS } from "@/types/playground";
 import type { RenderOutputMode, TextColorMode, TextOutputWarning } from "@/types/playground";
 import { clamp } from "@/utils/color";
+import {
+  getNextZoomPercent,
+  getPreviousZoomPercent,
+  MAX_ZOOM_PERCENT,
+  MIN_ZOOM_PERCENT,
+  resolvePreviewShortcut,
+} from "@/utils/previewControls";
 
 type ViewportPoint = {
   x: number;
@@ -22,6 +36,8 @@ type ContentSize = {
   width: number;
   height: number;
 };
+
+type PreviewSurface = "export" | "shortcuts" | "viewport";
 
 type TextOutputMode = Exclude<RenderOutputMode, "svg">;
 
@@ -47,6 +63,9 @@ type MermaidPreviewProps = {
   asciiHtml: string | null;
   error: string | null;
   canExport: boolean;
+  canRedo: boolean;
+  canUndo: boolean;
+  canToggleTransparentBackground: boolean;
   transparentApplied: boolean;
   onOutputModeChange: (value: RenderOutputMode) => void;
   onCopySvg: () => void;
@@ -54,13 +73,17 @@ type MermaidPreviewProps = {
   onDownloadSvg: () => void;
   onDownloadPng: () => void;
   onCopyText: (payload: { mode: TextOutputMode; colorMode: TextColorMode }) => void;
+  onRedo: () => void;
+  onToggleTransparentBackground: () => void;
+  onUndo: () => void;
 };
 
-const MIN_SCALE = 0.1;
-const MAX_SCALE = 8;
+const MIN_SCALE = MIN_ZOOM_PERCENT / 100;
+const MAX_SCALE = MAX_ZOOM_PERCENT / 100;
 const FIT_MAX_SCALE = 1;
 const WHEEL_ZOOM_SPEED = 0.0018;
 const FIT_PADDING = 36;
+const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
 
 const OUTPUT_MODE_ITEMS = RENDER_OUTPUT_MODE_OPTIONS.map((item) => ({
   key: item.value,
@@ -124,15 +147,37 @@ function isViewportChromeEvent(event: Event): boolean {
   const target = event.target;
   return (
     target instanceof Element &&
-    Boolean(target.closest(".feedback-layer, .preview-toolbar-row, .preview-viewport-controls"))
+    Boolean(
+      target.closest(
+        ".feedback-layer, .preview-toolbar-row, .preview-viewport-controls, .preview-shortcuts-panel, .preview-shortcuts-interaction-guard",
+      ),
+    )
   );
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest("input, textarea, select, [contenteditable='true'], .monaco-editor"),
+  );
+}
+
+function getModifierLabel(): "⌘" | "Ctrl" {
+  return /Mac|iPhone|iPad/u.test(navigator.platform) ? "⌘" : "Ctrl";
+}
+
 export default function MermaidPreview(props: MermaidPreviewProps) {
+  const sectionRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const svgHostRef = useRef<HTMLDivElement | null>(null);
   const textCanvasRef = useRef<HTMLPreElement | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const viewportMenuRef = useRef<HTMLDivElement | null>(null);
+  const shortcutsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const viewportMenuCloseTimer = useRef<number | null>(null);
   const pointerPositions = useRef(new Map<number, ViewportPoint>());
   const dragStartPointer = useRef<ViewportPoint | null>(null);
   const dragStartOffset = useRef<ViewportPoint | null>(null);
@@ -143,12 +188,17 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   const [offset, setOffset] = useState<ViewportPoint>({ x: 0, y: 0 });
   const [activePointerIds, setActivePointerIds] = useState<Set<number>>(new Set());
   const [autoFit, setAutoFit] = useState(true);
-  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [openSurface, setOpenSurface] = useState<PreviewSurface | null>(null);
+  const isExportMenuOpen = openSurface === "export";
+  const isShortcutsOpen = openSurface === "shortcuts";
+  const isViewportMenuOpen = openSurface === "viewport";
 
   const hasCurrentOutput =
     props.outputMode === "svg" ? Boolean(props.svg) : Boolean(props.asciiHtml);
   const zoomLabel = `${Math.round(scale * 100)}%`;
+  const previousZoomPercent = getPreviousZoomPercent(scale * 100);
+  const nextZoomPercent = getNextZoomPercent(scale * 100);
   const isTransparentPreview = props.outputMode === "svg" && props.transparentApplied;
   const visibleWarnings = props.outputMode === "svg" || props.error ? [] : props.textWarnings;
 
@@ -285,6 +335,34 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     },
     [offset, scale],
   );
+
+  const zoomFromViewportCenter = useCallback(
+    (nextScale: number): void => {
+      const viewport = viewportRef.current;
+      if (!viewport) {
+        return;
+      }
+
+      const rect = viewport.getBoundingClientRect();
+      zoomAt(rect.width / 2, rect.height / 2, nextScale);
+      setAutoFit(false);
+    },
+    [zoomAt],
+  );
+
+  const zoomOutOneStep = useCallback((): void => {
+    const previous = getPreviousZoomPercent(scale * 100);
+    if (previous !== null) {
+      zoomFromViewportCenter(previous / 100);
+    }
+  }, [scale, zoomFromViewportCenter]);
+
+  const zoomInOneStep = useCallback((): void => {
+    const next = getNextZoomPercent(scale * 100);
+    if (next !== null) {
+      zoomFromViewportCenter(next / 100);
+    }
+  }, [scale, zoomFromViewportCenter]);
 
   const getPointerPairMidpoint = useCallback((): ViewportPoint | null => {
     const entries = Array.from(pointerPositions.current.values());
@@ -481,7 +559,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   }
 
   function handleExportAction(action: ExportAction): void {
-    setIsExportMenuOpen(false);
+    setOpenSurface(null);
     switch (action.kind) {
       case "copy-svg":
         props.onCopySvg();
@@ -503,7 +581,78 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   }
 
   function toggleViewportFullscreen(): void {
+    setOpenSurface(null);
     setIsFullscreen((value) => !value);
+  }
+
+  function openViewportMenu(): void {
+    if (viewportMenuCloseTimer.current !== null) {
+      window.clearTimeout(viewportMenuCloseTimer.current);
+      viewportMenuCloseTimer.current = null;
+    }
+    setOpenSurface("viewport");
+  }
+
+  function scheduleViewportMenuClose(): void {
+    if (!window.matchMedia(FINE_POINTER_QUERY).matches) {
+      return;
+    }
+    if (viewportMenuCloseTimer.current !== null) {
+      window.clearTimeout(viewportMenuCloseTimer.current);
+    }
+    viewportMenuCloseTimer.current = window.setTimeout(() => {
+      setOpenSurface((current) => (current === "viewport" ? null : current));
+      viewportMenuCloseTimer.current = null;
+    }, 150);
+  }
+
+  const closeShortcuts = useCallback((): void => {
+    setOpenSurface(null);
+    requestAnimationFrame(() => shortcutsButtonRef.current?.focus());
+  }, []);
+
+  const toggleShortcuts = useCallback((): void => {
+    if (openSurface === "shortcuts") {
+      closeShortcuts();
+      return;
+    }
+
+    setOpenSurface("shortcuts");
+  }, [closeShortcuts, openSurface]);
+
+  function handlePercentClick(): void {
+    if (window.matchMedia(FINE_POINTER_QUERY).matches) {
+      zoomToOneHundredPercent();
+      return;
+    }
+
+    if (isViewportMenuOpen) {
+      setOpenSurface(null);
+    } else {
+      openViewportMenu();
+    }
+  }
+
+  function handleViewportMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    const items = Array.from(
+      viewportMenuRef.current?.querySelectorAll<HTMLButtonElement>(
+        "[role='menuitem']:not(:disabled), [role='menuitemcheckbox']:not(:disabled)",
+      ) ?? [],
+    );
+    if (items.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex =
+      currentIndex < 0 ? (direction > 0 ? 0 : items.length - 1) : currentIndex + direction;
+    items[(nextIndex + items.length) % items.length]?.focus();
   }
 
   useEffect(() => {
@@ -512,16 +661,8 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     }
 
     const id = requestAnimationFrame(() => zoomToFit());
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        setIsFullscreen(false);
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
     return () => {
       cancelAnimationFrame(id);
-      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isFullscreen, zoomToFit]);
 
@@ -532,28 +673,107 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
 
     const handleDocumentPointerDown = (event: PointerEvent): void => {
       if (!exportMenuRef.current?.contains(event.target as Node)) {
-        setIsExportMenuOpen(false);
+        setOpenSurface((current) => (current === "export" ? null : current));
       }
     };
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        setIsExportMenuOpen(false);
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+    };
+  }, [isExportMenuOpen]);
+
+  useEffect(() => {
+    if (!isViewportMenuOpen || window.matchMedia(FINE_POINTER_QUERY).matches) {
+      return;
+    }
+
+    const handleDocumentPointerDown = (event: PointerEvent): void => {
+      if (!viewportMenuRef.current?.contains(event.target as Node)) {
+        setOpenSurface((current) => (current === "viewport" ? null : current));
       }
     };
 
     document.addEventListener("pointerdown", handleDocumentPointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handleDocumentPointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
+  }, [isViewportMenuOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        if (openSurface === "shortcuts") {
+          event.preventDefault();
+          closeShortcuts();
+        } else if (openSurface !== null) {
+          event.preventDefault();
+          setOpenSurface(null);
+        } else if (isFullscreen) {
+          event.preventDefault();
+          setIsFullscreen(false);
+        }
+        return;
+      }
+
+      const shortcut = resolvePreviewShortcut({
+        code: event.code,
+        key: event.key,
+        shiftKey: event.shiftKey,
+        previewActive: Boolean(sectionRef.current?.contains(document.activeElement)),
+        editableTarget: isEditableTarget(event.target),
+      });
+      if (!shortcut) {
+        return;
+      }
+
+      event.preventDefault();
+      switch (shortcut) {
+        case "fit":
+          zoomToFit();
+          return;
+        case "fullscreen":
+          toggleViewportFullscreen();
+          return;
+        case "shortcuts":
+          toggleShortcuts();
+          return;
+        case "zoom-in":
+          zoomInOneStep();
+          return;
+        case "zoom-out":
+          zoomOutOneStep();
+          return;
+        case "zoom-reset":
+          zoomToOneHundredPercent();
+      }
     };
-  }, [isExportMenuOpen]);
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    closeShortcuts,
+    isFullscreen,
+    openSurface,
+    toggleShortcuts,
+    zoomInOneStep,
+    zoomOutOneStep,
+    zoomToFit,
+    zoomToOneHundredPercent,
+  ]);
+
+  useEffect(
+    () => () => {
+      if (viewportMenuCloseTimer.current !== null) {
+        window.clearTimeout(viewportMenuCloseTimer.current);
+      }
+    },
+    [],
+  );
 
   const renderedOffsetX = props.outputMode === "svg" ? snapToDevicePixel(offset.x) : offset.x;
   const renderedOffsetY = props.outputMode === "svg" ? snapToDevicePixel(offset.y) : offset.y;
+  const modifierLabel = getModifierLabel();
 
   return (
-    <section className="panel-shell" aria-label="Diagram preview">
+    <section ref={sectionRef} className="panel-shell" aria-label="Diagram preview">
       <div className="panel-header">
         <h2>Preview</h2>
         <div className="preview-info">
@@ -565,7 +785,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
               aria-haspopup="menu"
               aria-expanded={isExportMenuOpen}
               disabled={!props.canExport}
-              onClick={() => setIsExportMenuOpen((value) => !value)}
+              onClick={() => setOpenSurface((current) => (current === "export" ? null : "export"))}
             >
               <Copy size={13} strokeWidth={1.8} aria-hidden="true" />
               <span>Export</span>
@@ -596,6 +816,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
             "preview-viewport",
             isTransparentPreview ? "preview-viewport-transparent" : "",
             isFullscreen ? "preview-viewport-fullscreen" : "",
+            isShortcutsOpen ? "preview-dialog-open" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -604,6 +825,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onWheel={handleWheel}
+          tabIndex={0}
         >
           <div className="preview-toolbar-row">
             <div className="preview-toolbar-right" role="tablist" aria-label="Output mode">
@@ -646,41 +868,178 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
           </div>
 
           <div className="preview-viewport-controls" aria-label="Viewport controls">
+            <div className="preview-history-control" role="group" aria-label="Source edit history">
+              <button
+                type="button"
+                className="preview-history-button"
+                disabled={!props.canUndo}
+                aria-label="Undo source edit"
+                title={`Undo source edit (${modifierLabel}Z)`}
+                onClick={props.onUndo}
+              >
+                <Undo2 size={18} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="preview-history-button"
+                disabled={!props.canRedo}
+                aria-label="Redo source edit"
+                title={`Redo source edit (${modifierLabel}${modifierLabel === "⌘" ? "⇧" : "+Shift+"}Z)`}
+                onClick={props.onRedo}
+              >
+                <Redo2 size={18} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="preview-zoom-control" aria-label="Preview zoom controls">
+              <button
+                type="button"
+                className="preview-zoom-step"
+                disabled={!hasCurrentOutput || previousZoomPercent === null}
+                aria-label="Zoom out one step"
+                title="Zoom out (−)"
+                onClick={zoomOutOneStep}
+              >
+                <Minus size={13} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+
+              <div
+                ref={viewportMenuRef}
+                className="preview-zoom-menu-root"
+                onPointerEnter={(event) => {
+                  if (event.pointerType !== "touch") {
+                    openViewportMenu();
+                  }
+                }}
+                onPointerLeave={scheduleViewportMenuClose}
+                onFocusCapture={() => {
+                  if (window.matchMedia(FINE_POINTER_QUERY).matches) {
+                    openViewportMenu();
+                  }
+                }}
+                onBlurCapture={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    scheduleViewportMenuClose();
+                  }
+                }}
+              >
+                {isViewportMenuOpen ? (
+                  <div
+                    className="preview-zoom-menu"
+                    role="menu"
+                    aria-label="Preview view options"
+                    onKeyDown={handleViewportMenuKeyDown}
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="preview-zoom-menu-reset-touch"
+                      disabled={!hasCurrentOutput}
+                      onClick={() => {
+                        zoomToOneHundredPercent();
+                        setOpenSurface(null);
+                      }}
+                    >
+                      <span>Reset to 100%</span>
+                      <kbd>Shift 0</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!hasCurrentOutput}
+                      onClick={toggleViewportFullscreen}
+                    >
+                      {isFullscreen ? (
+                        <Minimize2 size={14} strokeWidth={1.7} aria-hidden="true" />
+                      ) : (
+                        <Maximize2 size={14} strokeWidth={1.7} aria-hidden="true" />
+                      )}
+                      <span>{isFullscreen ? "Exit fullscreen" : "Fullscreen"}</span>
+                      <kbd>Shift F</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!hasCurrentOutput}
+                      onClick={() => {
+                        zoomToFit();
+                        setOpenSurface(null);
+                      }}
+                    >
+                      <Scan size={14} strokeWidth={1.7} aria-hidden="true" />
+                      <span>Fit</span>
+                      <kbd>Shift 1</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitemcheckbox"
+                      aria-checked={props.transparentApplied}
+                      disabled={!props.canToggleTransparentBackground}
+                      title={
+                        props.canToggleTransparentBackground
+                          ? "Toggle transparent background"
+                          : "Transparent background is available for SVG"
+                      }
+                      onClick={() => {
+                        props.onToggleTransparentBackground();
+                        setOpenSurface(null);
+                      }}
+                    >
+                      <Grid2X2 size={14} strokeWidth={1.7} aria-hidden="true" />
+                      <span>Transparent</span>
+                      <span className="preview-menu-state" aria-hidden="true">
+                        {props.transparentApplied ? "On" : "Off"}
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  className="zoom-percent-button"
+                  disabled={!hasCurrentOutput}
+                  aria-label={`Current zoom ${zoomLabel}. Reset to 100% or open view options`}
+                  aria-haspopup="menu"
+                  aria-expanded={isViewportMenuOpen}
+                  title="Reset zoom to 100%"
+                  onClick={handlePercentClick}
+                >
+                  {zoomLabel}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="preview-zoom-step"
+                disabled={!hasCurrentOutput || nextZoomPercent === null}
+                aria-label="Zoom in one step"
+                title="Zoom in (+)"
+                onClick={zoomInOneStep}
+              >
+                <Plus size={13} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            </div>
+
             <button
+              ref={shortcutsButtonRef}
               type="button"
-              className="icon-button"
-              disabled={!hasCurrentOutput}
-              aria-label={isFullscreen ? "Exit viewport fullscreen" : "Open viewport fullscreen"}
-              title={isFullscreen ? "Exit viewport fullscreen" : "Viewport fullscreen"}
-              onClick={toggleViewportFullscreen}
+              className="icon-button shortcut-trigger-button"
+              aria-label={isShortcutsOpen ? "Close keyboard shortcuts" : "Open keyboard shortcuts"}
+              aria-haspopup="dialog"
+              aria-expanded={isShortcutsOpen}
+              title="Keyboard shortcuts (?)"
+              onClick={toggleShortcuts}
             >
-              {isFullscreen ? (
-                <Minimize2 size={14} strokeWidth={1.7} />
-              ) : (
-                <Maximize2 size={14} strokeWidth={1.7} />
-              )}
-            </button>
-            <button
-              type="button"
-              className="icon-button"
-              disabled={!hasCurrentOutput}
-              aria-label="Zoom to fit"
-              title="Zoom to fit"
-              onClick={() => zoomToFit()}
-            >
-              <Scan size={14} strokeWidth={1.7} />
-            </button>
-            <button
-              type="button"
-              className="zoom-percent-button"
-              disabled={!hasCurrentOutput}
-              aria-label="Zoom to 100%"
-              title="Zoom to 100%"
-              onClick={zoomToOneHundredPercent}
-            >
-              {zoomLabel}
+              <Keyboard size={14} strokeWidth={1.7} aria-hidden="true" />
             </button>
           </div>
+
+          {isShortcutsOpen ? (
+            <>
+              <div className="preview-shortcuts-interaction-guard" aria-hidden="true" />
+              <PreviewShortcutsPanel modifierLabel={modifierLabel} onClose={closeShortcuts} />
+            </>
+          ) : null}
 
           {props.error ? (
             <p className="feedback-layer feedback-block tone-error">

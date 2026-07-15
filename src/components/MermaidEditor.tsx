@@ -32,6 +32,13 @@ export type MermaidEditorHandle = {
   focus: () => void;
   focusToEnd: () => void;
   layout: () => void;
+  redo: () => void;
+  undo: () => void;
+};
+
+export type EditorHistoryState = {
+  canRedo: boolean;
+  canUndo: boolean;
 };
 
 type MermaidEditorProps = {
@@ -42,6 +49,7 @@ type MermaidEditorProps = {
   surfaceColor: string;
   focusToEndToken: number;
   onChange: (value: string) => void;
+  onHistoryStateChange: (value: EditorHistoryState) => void;
 };
 
 let monacoPromise: Promise<MonacoModule> | null = null;
@@ -228,10 +236,30 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
       editorRef.current?.layout();
     };
 
+    const emitHistoryState = (): void => {
+      const model = editorRef.current?.getModel();
+      propsRef.current.onHistoryStateChange({
+        canRedo: model?.canRedo() ?? false,
+        canUndo: model?.canUndo() ?? false,
+      });
+    };
+
+    const runHistoryCommand = (command: "redo" | "undo"): void => {
+      const editor = editorRef.current;
+      if (!editor) {
+        return;
+      }
+
+      editor.trigger("preview-toolbar", command, null);
+      editor.focus();
+    };
+
     useImperativeHandle(ref, () => ({
       focus: focusEditor,
       focusToEnd: focusEditorToEnd,
       layout: layoutEditor,
+      redo: () => runHistoryCommand("redo"),
+      undo: () => runHistoryCommand("undo"),
     }));
 
     useEffect(() => {
@@ -290,9 +318,11 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
           editorRef.current = editor;
           modelDisposable = editor.onDidChangeModelContent(() => {
             propsRef.current.onChange(editor.getValue());
+            emitHistoryState();
           });
 
           setIsReady(true);
+          emitHistoryState();
           requestAnimationFrame(() => {
             monacoInstance.editor.remeasureFonts();
             editor.layout();
@@ -322,6 +352,7 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
         editorRef.current?.dispose();
         editorRef.current = null;
         monacoModuleRef.current = null;
+        propsRef.current.onHistoryStateChange({ canRedo: false, canUndo: false });
       };
     }, []);
 

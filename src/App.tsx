@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, TransitionEvent } from "react";
-import { Grid2X2, Moon, Sun } from "lucide-react";
-import MermaidEditor, { type MermaidEditorHandle } from "@/components/MermaidEditor";
+import { Moon, Sun } from "lucide-react";
+import MermaidEditor, {
+  type EditorHistoryState,
+  type MermaidEditorHandle,
+} from "@/components/MermaidEditor";
 import MermaidPreview from "@/components/MermaidPreview";
 import { preloadRenderer, useBeautifulRenderer } from "@/hooks/useBeautifulRenderer";
 import { usePlaygroundState } from "@/hooks/usePlaygroundState";
@@ -211,21 +214,11 @@ function getTextColorModeLabel(colorMode: TextColorMode): string {
 
 function Header({
   colorMode,
-  transparentBackground,
-  canToggleTransparentBackground,
   onToggleColorMode,
-  onToggleTransparentBackground,
 }: {
   colorMode: ColorMode;
-  transparentBackground: boolean;
-  canToggleTransparentBackground: boolean;
   onToggleColorMode: () => void;
-  onToggleTransparentBackground: () => void;
 }) {
-  const transparentTitle = canToggleTransparentBackground
-    ? "Transparent background"
-    : "Transparent background is available for SVG";
-
   return (
     <header className="mmd-header">
       <div className="mmd-brand">
@@ -233,17 +226,6 @@ function Header({
         <div className="mmd-subtitle">Paste Mermaid. See the diagram.</div>
       </div>
       <div className="mmd-actions">
-        <button
-          type="button"
-          className="header-icon-button transparent-toggle-button"
-          aria-label="Toggle transparent background"
-          aria-pressed={transparentBackground}
-          title={transparentTitle}
-          disabled={!canToggleTransparentBackground}
-          onClick={onToggleTransparentBackground}
-        >
-          <Grid2X2 size={14} strokeWidth={1.7} aria-hidden="true" />
-        </button>
         <button
           type="button"
           className="header-icon-button theme-toggle-button"
@@ -269,6 +251,10 @@ function App() {
   const [notice, setNoticeState] = useState<NoticeState | null>(null);
   const [previewFitRequestId, setPreviewFitRequestId] = useState(0);
   const [editorFocusToEndToken, setEditorFocusToEndToken] = useState(0);
+  const [editorHistory, setEditorHistory] = useState<EditorHistoryState>({
+    canRedo: false,
+    canUndo: false,
+  });
   const splitPaneRef = useRef<HTMLElement | null>(null);
   const editorRef = useRef<MermaidEditorHandle | null>(null);
   const noticeTimer = useRef<number | null>(null);
@@ -582,13 +568,7 @@ function App() {
 
   return (
     <div className="app-shell" style={appStyle}>
-      <Header
-        colorMode={colorMode}
-        transparentBackground={appliedPreviewTransparency}
-        canToggleTransparentBackground={canTogglePreviewTransparency}
-        onToggleColorMode={toggleColorMode}
-        onToggleTransparentBackground={toggleTransparentBackground}
-      />
+      <Header colorMode={colorMode} onToggleColorMode={toggleColorMode} />
 
       <main className="mmd-main">
         <section
@@ -607,6 +587,7 @@ function App() {
               surfaceColor={appliedUiPalette.bg}
               focusToEndToken={editorFocusToEndToken}
               onChange={updateCode}
+              onHistoryStateChange={setEditorHistory}
             />
           </div>
 
@@ -629,6 +610,9 @@ function App() {
               asciiHtml={renderState.asciiHtml}
               error={renderState.error}
               canExport={canExportCurrentOutput}
+              canRedo={editorHistory.canRedo}
+              canUndo={editorHistory.canUndo}
+              canToggleTransparentBackground={canTogglePreviewTransparency}
               transparentApplied={appliedPreviewTransparency}
               onOutputModeChange={(value) =>
                 updateState((draft) => {
@@ -640,6 +624,9 @@ function App() {
               onDownloadSvg={exportSvg}
               onDownloadPng={() => void exportPng()}
               onCopyText={(payload) => void copyTextOutput(payload)}
+              onRedo={() => editorRef.current?.redo()}
+              onToggleTransparentBackground={toggleTransparentBackground}
+              onUndo={() => editorRef.current?.undo()}
             />
           </div>
         </section>
