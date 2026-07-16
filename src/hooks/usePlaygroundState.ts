@@ -8,7 +8,7 @@ import {
 import { clamp } from "@/utils/color";
 
 const STORAGE_KEY = "mmd-paper-editor-state-v1";
-const DEFAULT_CODE = `sequenceDiagram
+export const DEFAULT_CODE = `sequenceDiagram
   actor U as User
   participant App as Client App
   participant Auth as Auth Server
