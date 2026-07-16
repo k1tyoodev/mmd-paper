@@ -30,6 +30,7 @@ type TextCopyPayload = {
   mode: Exclude<RenderOutputMode, "svg">;
   colorMode: TextColorMode;
 };
+type MobilePane = "editor" | "preview";
 
 const THEME_STORAGE_KEY = "mmd-paper-theme";
 const SPLIT_DIVIDER_TRACK_PX = 10;
@@ -206,9 +207,13 @@ function getTextColorModeLabel(colorMode: TextColorMode): string {
 
 function Header({
   colorMode,
+  mobilePane,
+  onMobilePaneChange,
   onToggleColorMode,
 }: {
   colorMode: ColorMode;
+  mobilePane: MobilePane;
+  onMobilePaneChange: (pane: MobilePane) => void;
   onToggleColorMode: () => void;
 }) {
   const themeLabel = `Theme: ${colorMode}. Switch to ${nextColorMode(colorMode)} theme`;
@@ -218,6 +223,26 @@ function Header({
       <div className="mmd-brand">
         <div className="mmd-title">MMD Paper</div>
         <div className="mmd-subtitle">Paste Mermaid. See the diagram.</div>
+      </div>
+      <div className="mmd-pane-switch">
+        <button
+          type="button"
+          className="segmented-button"
+          aria-pressed={mobilePane === "editor"}
+          data-active={mobilePane === "editor"}
+          onClick={() => onMobilePaneChange("editor")}
+        >
+          Editor
+        </button>
+        <button
+          type="button"
+          className="segmented-button"
+          aria-pressed={mobilePane === "preview"}
+          data-active={mobilePane === "preview"}
+          onClick={() => onMobilePaneChange("preview")}
+        >
+          Preview
+        </button>
       </div>
       <div className="mmd-actions">
         <button
@@ -246,6 +271,7 @@ function App() {
   const [systemPrefersDark, setSystemPrefersDark] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches,
   );
+  const [mobilePane, setMobilePane] = useState<MobilePane>("preview");
   const [notice, setNoticeState] = useState<NoticeState | null>(null);
   const [previewFitRequestId, setPreviewFitRequestId] = useState(0);
   const [editorFocusToEndToken, setEditorFocusToEndToken] = useState(0);
@@ -405,7 +431,9 @@ function App() {
     const id = window.setTimeout(() => {
       void preloadRenderer();
     }, 0);
-    setEditorFocusToEndToken((value) => value + 1);
+    if (window.matchMedia("(min-width: 961px)").matches) {
+      setEditorFocusToEndToken((value) => value + 1);
+    }
     return () => {
       window.clearTimeout(id);
       if (noticeTimer.current !== null) {
@@ -413,6 +441,12 @@ function App() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (mobilePane === "editor") {
+      editorRef.current?.layout();
+    }
+  }, [mobilePane]);
 
   useEffect(() => {
     if (renderState.renderId > 0) {
@@ -443,6 +477,10 @@ function App() {
   function toggleColorMode(): void {
     setColorMode((current) => nextColorMode(current));
     setPreviewFitRequestId((value) => value + 1);
+  }
+
+  function handleMobilePaneChange(pane: MobilePane): void {
+    setMobilePane(pane);
   }
 
   function handleInsertExample(): void {
@@ -586,13 +624,19 @@ function App() {
 
   return (
     <div className="app-shell" style={appStyle}>
-      <Header colorMode={colorMode} onToggleColorMode={toggleColorMode} />
+      <Header
+        colorMode={colorMode}
+        mobilePane={mobilePane}
+        onMobilePaneChange={handleMobilePaneChange}
+        onToggleColorMode={toggleColorMode}
+      />
 
       <main className="mmd-main">
         <section
           ref={splitPaneRef}
           className={workspaceClassName}
           style={workspaceStyle}
+          data-mobile-pane={mobilePane}
           onTransitionEnd={handleWorkspaceTransitionEnd}
         >
           <div className="pane editor-pane">

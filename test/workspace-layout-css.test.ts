@@ -144,3 +144,17 @@ await test("keeps feedback banners above the viewport controls", async () => {
     /@media\s*\(max-width:\s*960px\)[\s\S]*\.feedback-stack\s*\{\s*bottom:\s*62px;/u,
   );
 });
+
+await test("shows only the active mobile pane in the workspace", async () => {
+  const stylesheet = await readFile(stylesheetPath, "utf8");
+
+  assert.match(
+    stylesheet,
+    /@media\s*\(max-width:\s*960px\)[\s\S]*\.editor-preview-workspace\[data-mobile-pane="editor"\] \.preview-pane,\s*\.editor-preview-workspace\[data-mobile-pane="preview"\] \.editor-pane\s*\{\s*display:\s*none;/u,
+  );
+  assert.match(
+    stylesheet,
+    /@media\s*\(max-width:\s*960px\)[\s\S]*\.editor-preview-workspace\[data-mobile-pane="editor"\] \.editor-pane,\s*\.editor-preview-workspace\[data-mobile-pane="preview"\] \.preview-pane\s*\{\s*flex:\s*1 1 100%;/u,
+  );
+  assert.doesNotMatch(stylesheet, /flex:\s*1 1 50%\s*!important/u);
+});

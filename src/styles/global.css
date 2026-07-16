@@ -289,6 +289,18 @@ textarea {
   color: var(--fg);
 }
 
+.mmd-pane-switch {
+  --segmented-control-radius: var(--control-radius);
+  --segmented-button-radius: calc(var(--segmented-control-radius) - 1px);
+  display: none;
+  align-items: center;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--segmented-control-radius);
+  overflow: hidden;
+  background: var(--panel);
+}
+
 .mmd-main {
   flex: 1;
   min-height: 0;
@@ -1266,6 +1278,15 @@ textarea {
     display: none;
   }
 
+  .mmd-pane-switch {
+    display: inline-flex;
+  }
+
+  .header-icon-button {
+    width: 40px;
+    min-height: 40px;
+  }
+
   .editor-preview-workspace {
     display: flex;
     flex-direction: column;
@@ -1281,23 +1302,14 @@ textarea {
     min-height: 260px;
   }
 
-  .workspace-editor-hidden .editor-pane,
-  .workspace-collapsing-editor .editor-pane,
-  .workspace-restoring-editor .editor-pane,
-  .workspace-editor-hidden .preview-pane,
-  .workspace-collapsing-editor .preview-pane,
-  .workspace-restoring-editor .preview-pane,
-  .workspace-preview-hidden .editor-pane,
-  .workspace-collapsing-preview .editor-pane,
-  .workspace-restoring-preview .editor-pane,
-  .workspace-preview-hidden .preview-pane,
-  .workspace-collapsing-preview .preview-pane,
-  .workspace-restoring-preview .preview-pane {
-    opacity: 1;
-    filter: none;
-    flex: 1 1 50% !important;
-    min-width: 0;
-    pointer-events: auto;
+  .editor-preview-workspace[data-mobile-pane="editor"] .preview-pane,
+  .editor-preview-workspace[data-mobile-pane="preview"] .editor-pane {
+    display: none;
+  }
+
+  .editor-preview-workspace[data-mobile-pane="editor"] .editor-pane,
+  .editor-preview-workspace[data-mobile-pane="preview"] .preview-pane {
+    flex: 1 1 100%;
   }
 
   .editor-pane {
@@ -1309,6 +1321,10 @@ textarea {
   }
 
   .panel-header {
+    min-height: 48px;
+  }
+
+  .export-menu-button {
     min-height: 40px;
   }
 
@@ -1410,6 +1426,7 @@ textarea {
 
   .segmented-button {
     min-width: 44px;
+    min-height: 44px;
     padding: 0 6px;
   }
 }
