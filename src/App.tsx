@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, TransitionEvent } from "react";
-import { AlertCircle, AlertTriangle, Check, Info, Moon, Sun } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, Info, Moon, Sun, SunMoon } from "lucide-react";
 import MermaidEditor, {
   type EditorHistoryState,
   type MermaidEditorHandle,
@@ -10,7 +10,7 @@ import { preloadRenderer, useBeautifulRenderer } from "@/hooks/useBeautifulRende
 import { usePlaygroundState } from "@/hooks/usePlaygroundState";
 import { useSplitPane } from "@/hooks/useSplitPane";
 import { useTextOutputWarnings } from "@/hooks/useTextOutputWarnings";
-import { VERCEL_DIAGRAM_TOKENS, type ColorMode } from "@/theme/vercel";
+import { VERCEL_DIAGRAM_TOKENS, type ColorMode, type ResolvedColorMode } from "@/theme/vercel";
 import type {
   EditorState,
   RenderConfig,
@@ -18,6 +18,7 @@ import type {
   TextColorMode,
 } from "@/types/playground";
 import { TEXT_COLOR_MODE_OPTIONS } from "@/types/playground";
+import { nextColorMode, parseStoredColorMode, resolveColorMode } from "@/utils/colorMode";
 import { resolveUiPaletteWithFallback } from "@/utils/contrast";
 
 type NoticeTone = "info" | "success" | "warning" | "error";
@@ -40,7 +41,9 @@ const TEXT_OUTPUT_FONT_FAMILY =
   '"Geist Mono", "Noto Sans SC", "Noto Sans Symbols 2", "Apple Symbols", "Segoe UI Symbol", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 const BASE_FONT_FAMILY =
   '"Geist", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-const APP_FONTS_HREF =
+// Same stylesheet as the font link in index.html; fetched to parse unicode-range
+// data for text-output warnings.
+const TEXT_OUTPUT_FONTS_CSS_URL =
   "https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Sans+Symbols+2&display=swap";
 
 function getSettledWorkspaceMode(
@@ -82,28 +85,17 @@ function getWorkspaceTracks(
   ];
 }
 
+// Keep in sync with the inline blocking theme script in index.html.
 function getInitialColorMode(): ColorMode {
   try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") {
-      return stored;
-    }
+    return parseStoredColorMode(window.localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
     // Ignore storage access failures and fall back to system preference.
+    return "system";
   }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function ensureGeistFontsLoaded(): void {
-  let linkElement = document.head.querySelector<HTMLLinkElement>("link[data-geist-fonts]");
-  if (!linkElement) {
-    linkElement = document.createElement("link");
-    linkElement.rel = "stylesheet";
-    linkElement.setAttribute("data-geist-fonts", "true");
-    document.head.append(linkElement);
-  }
-  linkElement.href = APP_FONTS_HREF;
+function warmupAppFonts(): void {
   void document.fonts.load(`13px ${BASE_FONT_FAMILY}`);
   void document.fonts.load(`13px ${EDITOR_FONT_FAMILY}`);
   void document.fonts.load(`13px ${TEXT_OUTPUT_FONT_FAMILY}`, "中文▲►●");
@@ -219,6 +211,8 @@ function Header({
   colorMode: ColorMode;
   onToggleColorMode: () => void;
 }) {
+  const themeLabel = `Theme: ${colorMode}. Switch to ${nextColorMode(colorMode)} theme`;
+
   return (
     <header className="mmd-header">
       <div className="mmd-brand">
@@ -229,15 +223,16 @@ function Header({
         <button
           type="button"
           className="header-icon-button theme-toggle-button"
-          aria-label="Toggle theme"
-          aria-pressed={colorMode === "dark"}
-          title={colorMode === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          aria-label={themeLabel}
+          title={themeLabel}
           onClick={onToggleColorMode}
         >
-          {colorMode === "dark" ? (
+          {colorMode === "light" ? (
             <Sun size={14} strokeWidth={1.7} aria-hidden="true" />
-          ) : (
+          ) : colorMode === "dark" ? (
             <Moon size={14} strokeWidth={1.7} aria-hidden="true" />
+          ) : (
+            <SunMoon size={14} strokeWidth={1.7} aria-hidden="true" />
           )}
         </button>
       </div>
@@ -248,6 +243,9 @@ function Header({
 function App() {
   const { state, setState } = usePlaygroundState();
   const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
+  const [systemPrefersDark, setSystemPrefersDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
   const [notice, setNoticeState] = useState<NoticeState | null>(null);
   const [previewFitRequestId, setPreviewFitRequestId] = useState(0);
   const [editorFocusToEndToken, setEditorFocusToEndToken] = useState(0);
@@ -270,7 +268,8 @@ function App() {
     [setState],
   );
 
-  const tokens = VERCEL_DIAGRAM_TOKENS[colorMode];
+  const resolvedColorMode: ResolvedColorMode = resolveColorMode(colorMode, systemPrefersDark);
+  const tokens = VERCEL_DIAGRAM_TOKENS[resolvedColorMode];
   const config = useMemo<RenderConfig>(
     () => ({ tokens, outputMode: state.outputMode, transparent: state.transparent }),
     [tokens, state.outputMode, state.transparent],
@@ -358,7 +357,7 @@ function App() {
     state.outputMode,
     renderState.textOutputMode,
     TEXT_OUTPUT_FONT_FAMILY,
-    APP_FONTS_HREF,
+    TEXT_OUTPUT_FONTS_CSS_URL,
   );
   const canExportCurrentOutput =
     state.outputMode === "svg" ? Boolean(renderState.svg) : Boolean(renderState.asciiHtml);
@@ -377,18 +376,30 @@ function App() {
   }, []);
 
   useEffect(() => {
-    ensureGeistFontsLoaded();
+    warmupAppFonts();
   }, []);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = colorMode;
-    document.documentElement.classList.toggle("dark", colorMode === "dark");
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    function handleSystemColorSchemeChange(event: MediaQueryListEvent): void {
+      setSystemPrefersDark(event.matches);
+    }
+
+    mediaQuery.addEventListener("change", handleSystemColorSchemeChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleSystemColorSchemeChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedColorMode;
+    document.documentElement.classList.toggle("dark", resolvedColorMode === "dark");
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, colorMode);
     } catch {
       // Ignore storage access failures.
     }
-  }, [colorMode]);
+  }, [colorMode, resolvedColorMode]);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -430,7 +441,7 @@ function App() {
   }
 
   function toggleColorMode(): void {
-    setColorMode((current) => (current === "dark" ? "light" : "dark"));
+    setColorMode((current) => nextColorMode(current));
     setPreviewFitRequestId((value) => value + 1);
   }
 
@@ -583,7 +594,7 @@ function App() {
               value={state.code}
               fontSize={EDITOR_FONT_SIZE}
               fontFamily={EDITOR_FONT_FAMILY}
-              colorScheme={colorMode}
+              colorScheme={resolvedColorMode}
               surfaceColor={appliedUiPalette.bg}
               focusToEndToken={editorFocusToEndToken}
               onChange={updateCode}

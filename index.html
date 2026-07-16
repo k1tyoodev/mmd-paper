@@ -2,6 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Keep in sync with src/App.tsx getInitialColorMode.
+      try {
+        var t = localStorage.getItem("mmd-paper-theme");
+        if (t !== "light" && t !== "dark" && t !== "system") {
+          t = "system";
+        }
+        var resolved =
+          t === "system"
+            ? matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light"
+            : t;
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.classList.toggle("dark", resolved === "dark");
+      } catch (e) {}
+    </script>
     <link rel="icon" href="https://mermaid.ai/open-source/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
@@ -9,10 +26,15 @@
       content="A focused Mermaid scratchpad for writing, previewing, and exporting diagrams."
     />
     <title>MMD Paper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Sans+Symbols+2&display=swap"
+    />
   </head>
   <body>
     <div id="app"></div>
-    <div id="app-popover-root"></div>
     <script type="module" src="/src/shikiEngineBootstrap.ts"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

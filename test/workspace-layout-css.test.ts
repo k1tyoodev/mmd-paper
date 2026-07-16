@@ -131,3 +131,16 @@ await test("keeps shortcut panel interactions out of canvas pointer capture", as
     /\.preview-shortcuts-interaction-guard/u,
   );
 });
+
+await test("keeps feedback banners above the viewport controls", async () => {
+  const stylesheet = await readFile(stylesheetPath, "utf8");
+
+  assert.match(
+    stylesheet,
+    /\.preview-viewport > \.feedback-block,\s*\.feedback-stack\s*\{[^}]*bottom:\s*52px;/su,
+  );
+  assert.match(
+    stylesheet,
+    /@media\s*\(max-width:\s*960px\)[\s\S]*\.feedback-stack\s*\{\s*bottom:\s*62px;/u,
+  );
+});
