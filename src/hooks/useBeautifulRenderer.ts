@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { AsciiRenderOptions as BeautifulAsciiRenderOptions } from "beautiful-mermaid";
-import type { RenderOptions as BeautifulRenderOptions } from "beautiful-mermaid";
-import { BASE_FONT_FAMILY, MONO_FONT_FAMILY, type DiagramTokens } from "@/theme/vercel";
-import { parseHexColor, toHexChannel } from "@/utils/color";
-import { normalizeTextOutputHtmlForDisplay } from "@/utils/textOutputDisplay";
+import type { AsciiRenderOptions as BeautifulAsciiRenderOptions } from 'beautiful-mermaid';
+import type { RenderOptions as BeautifulRenderOptions } from 'beautiful-mermaid';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+import { BASE_FONT_FAMILY, MONO_FONT_FAMILY, type DiagramTokens } from '@/theme/vercel';
 import type {
   RenderConfig,
   RenderOutputMode,
   RenderState,
   TextColorMode,
-} from "@/types/playground";
+} from '@/types/playground';
+import { parseHexColor, toHexChannel } from '@/utils/color';
+import { normalizeTextOutputHtmlForDisplay } from '@/utils/textOutputDisplay';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -22,17 +23,17 @@ function getErrorMessage(error: unknown): string {
 function isRendererLoadError(error: unknown): boolean {
   const message = getErrorMessage(error).toLowerCase();
   return (
-    message.includes("failed to fetch dynamically imported module") ||
-    message.includes("error loading dynamically imported module") ||
-    message.includes("loading chunk") ||
-    message.includes("chunkloaderror")
+    message.includes('failed to fetch dynamically imported module') ||
+    message.includes('error loading dynamically imported module') ||
+    message.includes('loading chunk') ||
+    message.includes('chunkloaderror')
   );
 }
 
-type BeautifulMermaidRuntime = typeof import("beautiful-mermaid");
+type BeautifulMermaidRuntime = typeof import('beautiful-mermaid');
 type AsciiRenderOptions = BeautifulAsciiRenderOptions;
 type RenderOptions = BeautifulRenderOptions;
-type AsciiThemeValues = Required<NonNullable<AsciiRenderOptions["theme"]>>;
+type AsciiThemeValues = Required<NonNullable<AsciiRenderOptions['theme']>>;
 
 type SvgRenderResult = {
   svg: string;
@@ -69,7 +70,7 @@ let beautifulMermaidRuntimePromise: Promise<BeautifulMermaidRuntime> | null = nu
 
 function loadBeautifulMermaid(): Promise<BeautifulMermaidRuntime> {
   if (!beautifulMermaidRuntimePromise) {
-    beautifulMermaidRuntimePromise = import("beautiful-mermaid");
+    beautifulMermaidRuntimePromise = import('beautiful-mermaid');
   }
 
   return beautifulMermaidRuntimePromise;
@@ -105,7 +106,7 @@ function mixHexColors(fg: string, bg: string, percent: number): string | null {
 }
 
 function resolveHexColor(color: string): string | null {
-  if (color.trim().toLowerCase() === "transparent") {
+  if (color.trim().toLowerCase() === 'transparent') {
     return null;
   }
 
@@ -127,8 +128,8 @@ function buildAsciiThemeFromTokens(tokens: DiagramTokens): AsciiThemeValues {
 }
 
 function sanitizeAsciiTheme(theme: AsciiThemeValues): AsciiThemeValues {
-  const bg = resolveHexColor(theme.bg) ?? "#ffffff";
-  const fg = resolveHexColor(theme.fg) ?? "#111111";
+  const bg = resolveHexColor(theme.bg) ?? '#ffffff';
+  const fg = resolveHexColor(theme.fg) ?? '#111111';
   const lineFallback = mixHexColors(fg, bg, 50) ?? fg;
   const borderFallback = mixHexColors(fg, bg, 20) ?? fg;
   const arrowFallback = mixHexColors(fg, bg, 85) ?? fg;
@@ -152,10 +153,10 @@ function sanitizeAsciiTheme(theme: AsciiThemeValues): AsciiThemeValues {
 function buildAsciiRenderOptions(
   theme: AsciiThemeValues,
   colorMode: TextColorMode,
-  outputMode: Exclude<RenderOutputMode, "svg">,
+  outputMode: Exclude<RenderOutputMode, 'svg'>,
 ): AsciiRenderOptions {
   return {
-    useAscii: outputMode === "ascii",
+    useAscii: outputMode === 'ascii',
     colorMode,
     paddingX: TEXT_PADDING_X,
     paddingY: TEXT_PADDING_Y,
@@ -169,7 +170,7 @@ function resolveTextTheme(tokens: DiagramTokens): AsciiThemeValues {
 }
 
 function stripCommonLeadingIndent(source: string): string {
-  const lines = source.split("\n");
+  const lines = source.split('\n');
   let minIndent = Number.POSITIVE_INFINITY;
 
   for (const line of lines) {
@@ -185,7 +186,7 @@ function stripCommonLeadingIndent(source: string): string {
     return source;
   }
 
-  return lines.map((line) => line.slice(minIndent)).join("\n");
+  return lines.map((line) => line.slice(minIndent)).join('\n');
 }
 
 function resolveRenderSource(codeValue: string): string {
@@ -197,7 +198,7 @@ function renderTextOutput(
   source: string,
   tokens: DiagramTokens,
   colorMode: TextColorMode,
-  outputMode: Exclude<RenderOutputMode, "svg">,
+  outputMode: Exclude<RenderOutputMode, 'svg'>,
 ): string {
   return runtime.renderMermaidASCII(
     source,
@@ -263,27 +264,27 @@ function renderSvgWithFallback(
 
 // Fixed "subtle" edge-label treatment (the only styled preset the UI shipped).
 function applyEdgeLabelStyle(doc: XMLDocument): void {
-  const groups = doc.querySelectorAll<SVGGElement>("g.edge-label");
+  const groups = doc.querySelectorAll<SVGGElement>('g.edge-label');
   for (const group of Array.from(groups)) {
-    const textNodes = group.querySelectorAll<SVGTextElement>("text");
+    const textNodes = group.querySelectorAll<SVGTextElement>('text');
     for (const textNode of Array.from(textNodes)) {
-      textNode.setAttribute("font-size", String(EDGE_LABEL_FONT_SIZE));
-      textNode.setAttribute("stroke", "none");
-      textNode.setAttribute("paint-order", "normal");
-      textNode.setAttribute("stroke-width", "0");
-      textNode.setAttribute("fill", "var(--_text-muted)");
+      textNode.setAttribute('font-size', String(EDGE_LABEL_FONT_SIZE));
+      textNode.setAttribute('stroke', 'none');
+      textNode.setAttribute('paint-order', 'normal');
+      textNode.setAttribute('stroke-width', '0');
+      textNode.setAttribute('fill', 'var(--_text-muted)');
     }
 
-    const backgroundRect = group.querySelector<SVGRectElement>("rect");
+    const backgroundRect = group.querySelector<SVGRectElement>('rect');
     if (!backgroundRect) {
       continue;
     }
 
-    backgroundRect.setAttribute("rx", "5");
-    backgroundRect.setAttribute("ry", "5");
-    backgroundRect.setAttribute("fill", "var(--bg)");
-    backgroundRect.setAttribute("stroke", "color-mix(in srgb, var(--fg) 14%, var(--bg))");
-    backgroundRect.setAttribute("stroke-width", "1");
+    backgroundRect.setAttribute('rx', '5');
+    backgroundRect.setAttribute('ry', '5');
+    backgroundRect.setAttribute('fill', 'var(--bg)');
+    backgroundRect.setAttribute('stroke', 'color-mix(in srgb, var(--fg) 14%, var(--bg))');
+    backgroundRect.setAttribute('stroke-width', '1');
   }
 }
 
@@ -334,23 +335,23 @@ function buildVisualCss(): string {
 
 function applyVisualOverrides(svg: string): string {
   const parser = new DOMParser();
-  const document = parser.parseFromString(svg, "image/svg+xml");
-  if (document.querySelector("parsererror")) {
+  const document = parser.parseFromString(svg, 'image/svg+xml');
+  if (document.querySelector('parsererror')) {
     return svg;
   }
 
   const root = document.documentElement;
-  if (!root || root.tagName.toLowerCase() !== "svg") {
+  if (!root || root.tagName.toLowerCase() !== 'svg') {
     return svg;
   }
 
   applyEdgeLabelStyle(document);
 
-  const existingStyle = root.querySelector("style[data-playground-visual-overrides]");
+  const existingStyle = root.querySelector('style[data-playground-visual-overrides]');
   existingStyle?.remove();
 
-  const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
-  styleElement.setAttribute("data-playground-visual-overrides", "");
+  const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  styleElement.setAttribute('data-playground-visual-overrides', '');
   styleElement.textContent = buildVisualCss();
   root.append(styleElement);
 
@@ -421,14 +422,14 @@ export function useBeautifulRenderer(code: string, config: RenderConfig, delayMs
       }
       const startedAt = performance.now();
 
-      if (configValue.outputMode === "svg") {
+      if (configValue.outputMode === 'svg') {
         const renderOptions = buildBeautifulMermaidOptions(configValue);
         const result = renderSvgWithFallback(runtime, source, renderOptions);
         const styledSvg = applyVisualOverrides(result.svg);
 
         if (result.usedFallback) {
           // Keep this visible in devtools without interrupting successful output.
-          console.warn("[playground] layout fallback applied after ELK scanline hitbox failure");
+          console.warn('[playground] layout fallback applied after ELK scanline hitbox failure');
         }
 
         commitRenderState({
@@ -443,7 +444,7 @@ export function useBeautifulRenderer(code: string, config: RenderConfig, delayMs
         const asciiTheme = resolveTextTheme(configValue.tokens);
         const renderedTextHtml = runtime.renderMermaidASCII(
           source,
-          buildAsciiRenderOptions(asciiTheme, "html", configValue.outputMode),
+          buildAsciiRenderOptions(asciiTheme, 'html', configValue.outputMode),
         );
         const asciiHtml = normalizeTextOutputHtmlForDisplay(
           renderedTextHtml,
@@ -464,9 +465,14 @@ export function useBeautifulRenderer(code: string, config: RenderConfig, delayMs
         return;
       }
 
-      const errorMessage = isRendererLoadError(error)
-        ? `Failed to load renderer runtime: ${getErrorMessage(error)}`
-        : getErrorMessage(error);
+      let errorMessage: string;
+      if (isRendererLoadError(error)) {
+        // Chunk load failures get a stable user-facing message; the raw error stays in devtools.
+        console.error('[playground] renderer runtime failed to load', error);
+        errorMessage = 'Renderer failed to load. Check your connection and reload the page.';
+      } else {
+        errorMessage = getErrorMessage(error);
+      }
       commitRenderState({
         svg: previousSvg,
         asciiHtml: previousAsciiHtml,
@@ -504,7 +510,7 @@ export function useBeautifulRenderer(code: string, config: RenderConfig, delayMs
   const renderTextByColorMode = useCallback(
     async (
       colorMode: TextColorMode,
-      outputMode: Exclude<RenderOutputMode, "svg">,
+      outputMode: Exclude<RenderOutputMode, 'svg'>,
     ): Promise<string | null> => {
       const source = resolveRenderSource(codeRef.current);
       if (!source) {
@@ -519,7 +525,7 @@ export function useBeautifulRenderer(code: string, config: RenderConfig, delayMs
         colorMode,
         outputMode,
       );
-      return colorMode === "html" ? text : stripCommonLeadingIndent(text);
+      return colorMode === 'html' ? text : stripCommonLeadingIndent(text);
     },
     [],
   );

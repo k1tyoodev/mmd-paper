@@ -7,7 +7,7 @@ import MermaidEditor, {
 } from "@/components/MermaidEditor";
 import MermaidPreview from "@/components/MermaidPreview";
 import { preloadRenderer, useBeautifulRenderer } from "@/hooks/useBeautifulRenderer";
-import { usePlaygroundState } from "@/hooks/usePlaygroundState";
+import { DEFAULT_CODE, usePlaygroundState } from "@/hooks/usePlaygroundState";
 import { useSplitPane } from "@/hooks/useSplitPane";
 import { useTextOutputWarnings } from "@/hooks/useTextOutputWarnings";
 import { VERCEL_DIAGRAM_TOKENS, type ColorMode, type ResolvedColorMode } from "@/theme/vercel";
@@ -445,6 +445,13 @@ function App() {
     setPreviewFitRequestId((value) => value + 1);
   }
 
+  function handleInsertExample(): void {
+    updateState((draft) => {
+      draft.code = DEFAULT_CODE;
+    });
+    setEditorFocusToEndToken((value) => value + 1);
+  }
+
   function toggleTransparentBackground(): void {
     if (!canTogglePreviewTransparency) {
       return;
@@ -615,6 +622,7 @@ function App() {
             <MermaidPreview
               outputMode={state.outputMode}
               fitRequestId={previewFitRequestId}
+              isEmpty={state.code.trim() === ""}
               monoFontFamily={TEXT_OUTPUT_FONT_FAMILY}
               textWarnings={textOutputWarnings}
               svg={renderState.svg}
@@ -635,6 +643,7 @@ function App() {
               onDownloadSvg={exportSvg}
               onDownloadPng={() => void exportPng()}
               onCopyText={(payload) => void copyTextOutput(payload)}
+              onInsertExample={handleInsertExample}
               onRedo={() => editorRef.current?.redo()}
               onToggleTransparentBackground={toggleTransparentBackground}
               onUndo={() => editorRef.current?.undo()}

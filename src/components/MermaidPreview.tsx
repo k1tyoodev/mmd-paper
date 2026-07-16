@@ -15,6 +15,7 @@ import {
   Scan,
   Undo2,
 } from "lucide-react";
+import PreviewEmptyState from "@/components/PreviewEmptyState";
 import PreviewShortcutsPanel from "@/components/PreviewShortcutsPanel";
 import { RENDER_OUTPUT_MODE_OPTIONS, TEXT_COLOR_MODE_OPTIONS } from "@/types/playground";
 import type { RenderOutputMode, TextColorMode, TextOutputWarning } from "@/types/playground";
@@ -62,12 +63,14 @@ type MermaidPreviewProps = {
   svg: string | null;
   asciiHtml: string | null;
   error: string | null;
+  isEmpty: boolean;
   canExport: boolean;
   canRedo: boolean;
   canUndo: boolean;
   canToggleTransparentBackground: boolean;
   transparentApplied: boolean;
   onOutputModeChange: (value: RenderOutputMode) => void;
+  onInsertExample: () => void;
   onCopySvg: () => void;
   onCopyPng: () => void;
   onDownloadSvg: () => void;
@@ -867,6 +870,10 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
             )}
           </div>
 
+          {props.isEmpty && !props.error ? (
+            <PreviewEmptyState onInsertExample={props.onInsertExample} />
+          ) : null}
+
           <div className="preview-viewport-controls" aria-label="Viewport controls">
             <div className="preview-history-control" role="group" aria-label="Source edit history">
               <button
@@ -1043,7 +1050,11 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
           ) : null}
 
           {props.error ? (
-            <p className="feedback-layer feedback-block tone-error">
+            <p
+              className="feedback-layer feedback-block tone-error"
+              role="alert"
+              title={props.error}
+            >
               <CircleX size={12} strokeWidth={1.85} className="feedback-label-icon" />
               <span>{props.error}</span>
             </p>
