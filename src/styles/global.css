@@ -760,12 +760,26 @@ textarea {
   display: grid;
   width: 196px;
   padding: 5px;
-  transform: translateX(50%);
+  transform: translateX(50%) translateY(5px) scale(0.98);
+  visibility: hidden;
+  opacity: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-menu);
   background: var(--panel);
   box-shadow: var(--shadow-popover);
-  animation: preview-popover-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  transition:
+    opacity 140ms var(--motion-ease),
+    transform 160ms var(--motion-ease),
+    visibility 0s linear 160ms;
+}
+
+.preview-zoom-menu[data-state="open"] {
+  transform: translateX(50%) translateY(0) scale(1);
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .preview-zoom-menu button {
@@ -796,18 +810,6 @@ textarea {
 
 .preview-zoom-menu-reset-touch {
   display: none !important;
-}
-
-@keyframes preview-popover-in {
-  from {
-    opacity: 0;
-    transform: translateX(50%) translateY(5px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(50%) translateY(0) scale(1);
-  }
 }
 
 .preview-toolbar-right {
@@ -976,6 +978,7 @@ textarea {
   min-width: 32px;
   min-height: 32px;
   margin: -4px -4px 0 0;
+  transition: none;
 }
 
 .preview-shortcuts-content {
@@ -1318,8 +1321,11 @@ textarea {
   .preview-zoom-menu {
     right: 0;
     width: min(248px, calc(100vw - 20px));
-    transform: none;
-    animation-name: preview-popover-in-mobile;
+    transform: translateY(5px) scale(0.98);
+  }
+
+  .preview-zoom-menu[data-state="open"] {
+    transform: translateY(0) scale(1);
   }
 
   .preview-zoom-menu-reset-touch {
@@ -1377,18 +1383,6 @@ textarea {
   .segmented-button {
     min-width: 44px;
     padding: 0 6px;
-  }
-}
-
-@keyframes preview-popover-in-mobile {
-  from {
-    opacity: 0;
-    transform: translateY(5px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 

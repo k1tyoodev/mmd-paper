@@ -923,76 +923,77 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
                   }
                 }}
               >
-                {isViewportMenuOpen ? (
-                  <div
-                    className="preview-zoom-menu"
-                    role="menu"
-                    aria-label="Preview view options"
-                    onKeyDown={handleViewportMenuKeyDown}
+                <div
+                  className="preview-zoom-menu"
+                  data-state={isViewportMenuOpen ? "open" : "closed"}
+                  role="menu"
+                  aria-label="Preview view options"
+                  aria-hidden={!isViewportMenuOpen}
+                  inert={!isViewportMenuOpen}
+                  onKeyDown={handleViewportMenuKeyDown}
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="preview-zoom-menu-reset-touch"
+                    disabled={!hasCurrentOutput}
+                    onClick={() => {
+                      zoomToOneHundredPercent();
+                      setOpenSurface(null);
+                    }}
                   >
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="preview-zoom-menu-reset-touch"
-                      disabled={!hasCurrentOutput}
-                      onClick={() => {
-                        zoomToOneHundredPercent();
-                        setOpenSurface(null);
-                      }}
-                    >
-                      <span>Reset to 100%</span>
-                      <kbd>Shift 0</kbd>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      disabled={!hasCurrentOutput}
-                      onClick={toggleViewportFullscreen}
-                    >
-                      {isFullscreen ? (
-                        <Minimize2 size={14} strokeWidth={1.7} aria-hidden="true" />
-                      ) : (
-                        <Maximize2 size={14} strokeWidth={1.7} aria-hidden="true" />
-                      )}
-                      <span>{isFullscreen ? "Exit fullscreen" : "Fullscreen"}</span>
-                      <kbd>Shift F</kbd>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      disabled={!hasCurrentOutput}
-                      onClick={() => {
-                        zoomToFit();
-                        setOpenSurface(null);
-                      }}
-                    >
-                      <Scan size={14} strokeWidth={1.7} aria-hidden="true" />
-                      <span>Fit</span>
-                      <kbd>Shift 1</kbd>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitemcheckbox"
-                      aria-checked={props.transparentApplied}
-                      disabled={!props.canToggleTransparentBackground}
-                      title={
-                        props.canToggleTransparentBackground
-                          ? "Toggle transparent background"
-                          : "Transparent background is available for SVG"
-                      }
-                      onClick={() => {
-                        props.onToggleTransparentBackground();
-                        setOpenSurface(null);
-                      }}
-                    >
-                      <Grid2X2 size={14} strokeWidth={1.7} aria-hidden="true" />
-                      <span>Transparent</span>
-                      <span className="preview-menu-state" aria-hidden="true">
-                        {props.transparentApplied ? "On" : "Off"}
-                      </span>
-                    </button>
-                  </div>
-                ) : null}
+                    <span>Reset to 100%</span>
+                    <kbd>Shift 0</kbd>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={!hasCurrentOutput}
+                    onClick={toggleViewportFullscreen}
+                  >
+                    {isFullscreen ? (
+                      <Minimize2 size={14} strokeWidth={1.7} aria-hidden="true" />
+                    ) : (
+                      <Maximize2 size={14} strokeWidth={1.7} aria-hidden="true" />
+                    )}
+                    <span>{isFullscreen ? "Exit fullscreen" : "Fullscreen"}</span>
+                    <kbd>Shift F</kbd>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={!hasCurrentOutput}
+                    onClick={() => {
+                      zoomToFit();
+                      setOpenSurface(null);
+                    }}
+                  >
+                    <Scan size={14} strokeWidth={1.7} aria-hidden="true" />
+                    <span>Fit</span>
+                    <kbd>Shift 1</kbd>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={props.transparentApplied}
+                    disabled={!props.canToggleTransparentBackground}
+                    title={
+                      props.canToggleTransparentBackground
+                        ? "Toggle transparent background"
+                        : "Transparent background is available for SVG"
+                    }
+                    onClick={() => {
+                      props.onToggleTransparentBackground();
+                      setOpenSurface(null);
+                    }}
+                  >
+                    <Grid2X2 size={14} strokeWidth={1.7} aria-hidden="true" />
+                    <span>Transparent</span>
+                    <span className="preview-menu-state" aria-hidden="true">
+                      {props.transparentApplied ? "On" : "Off"}
+                    </span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
