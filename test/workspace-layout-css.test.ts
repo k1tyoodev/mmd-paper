@@ -9,7 +9,8 @@ const previewComponentPath = fileURLToPath(
 );
 
 function readRuleBody(stylesheet: string, selector: string): string {
-  const rulePattern = new RegExp(`${selector.replaceAll(".", "\\.")}\\s*\\{([^}]*)\\}`, "u");
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  const rulePattern = new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, "u");
   const match = rulePattern.exec(stylesheet);
   assert.ok(match?.[1], `Expected ${selector} rule to exist`);
   return match[1];
@@ -66,8 +67,10 @@ await test("keeps viewport fullscreen controls inside the preview viewport", asy
 await test("keeps preview viewport hover colors in one atomic state change", async () => {
   const stylesheet = await readFile(stylesheetPath, "utf8");
   const viewportButtonRule = readRuleBody(stylesheet, ".preview-viewport-controls button");
+  const shortcutsCloseRule = readRuleBody(stylesheet, ".preview-shortcuts-close");
 
   assert.match(viewportButtonRule, /transition:\s*none;/u);
+  assert.match(shortcutsCloseRule, /transition:\s*none;/u);
   assert.match(
     stylesheet,
     /\.preview-zoom-control \.zoom-percent-button:hover:enabled\s*\{[^}]*border-color:\s*var\(--border\);/su,
@@ -80,7 +83,24 @@ await test("keeps a viewport inset beside the compact desktop zoom menu", async 
 
   assert.match(zoomMenuRule, /right:\s*50%;/u);
   assert.match(zoomMenuRule, /width:\s*196px;/u);
-  assert.match(zoomMenuRule, /transform:\s*translateX\(50%\);/u);
+  assert.match(zoomMenuRule, /transform:\s*translateX\(50%\) translateY\(5px\) scale\(0\.98\);/u);
+});
+
+await test("animates the zoom menu in and out without leaving hidden controls interactive", async () => {
+  const stylesheet = await readFile(stylesheetPath, "utf8");
+  const previewComponent = await readFile(previewComponentPath, "utf8");
+  const zoomMenuRule = readRuleBody(stylesheet, ".preview-zoom-menu");
+  const openMenuRule = readRuleBody(stylesheet, '.preview-zoom-menu[data-state="open"]');
+
+  assert.match(zoomMenuRule, /visibility:\s*hidden;/u);
+  assert.match(zoomMenuRule, /opacity:\s*0;/u);
+  assert.match(zoomMenuRule, /pointer-events:\s*none;/u);
+  assert.match(zoomMenuRule, /transition:[^}]*opacity 140ms[^}]*transform 160ms/su);
+  assert.match(openMenuRule, /visibility:\s*visible;/u);
+  assert.match(openMenuRule, /opacity:\s*1;/u);
+  assert.match(openMenuRule, /pointer-events:\s*auto;/u);
+  assert.match(previewComponent, /data-state=\{isViewportMenuOpen \? "open" : "closed"\}/u);
+  assert.match(previewComponent, /inert=\{!isViewportMenuOpen\}/u);
 });
 
 await test("keeps shortcut surfaces contained by the preview viewport", async () => {
