@@ -349,23 +349,28 @@ function App() {
     [updateState],
   );
 
-  const { isDragging, pendingCollapse, handleDividerPointerDown, handleDividerDoubleClick } =
-    useSplitPane({
-      containerRef: splitPaneRef,
-      ratio: state.splitRatio,
-      lastSplitRatio: state.lastSplitRatio,
-      workspaceMode: state.workspaceMode,
-      setRatio: setSplitRatio,
-      setLastSplitRatio,
-      setWorkspaceMode,
-      options: {
-        min: 0.28,
-        max: 0.72,
-        minLeftPx: 280,
-        minRightPx: 360,
-        collapseThresholdPx: 96,
-      },
-    });
+  const {
+    isDragging,
+    pendingCollapse,
+    handleDividerPointerDown,
+    handleDividerDoubleClick,
+    handleDividerKeyDown,
+  } = useSplitPane({
+    containerRef: splitPaneRef,
+    ratio: state.splitRatio,
+    lastSplitRatio: state.lastSplitRatio,
+    workspaceMode: state.workspaceMode,
+    setRatio: setSplitRatio,
+    setLastSplitRatio,
+    setWorkspaceMode,
+    options: {
+      min: 0.28,
+      max: 0.72,
+      minLeftPx: 280,
+      minRightPx: 360,
+      collapseThresholdPx: 96,
+    },
+  });
 
   const uiPaletteResult = useMemo(
     () =>
@@ -658,6 +663,11 @@ function App() {
             role="separator"
             aria-label={dividerLabel}
             aria-orientation="vertical"
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={Math.round(state.splitRatio * 100)}
+            tabIndex={0}
+            onKeyDown={handleDividerKeyDown}
             onPointerDown={handleDividerPointerDown}
             onDoubleClick={handleDividerDoubleClick}
           />

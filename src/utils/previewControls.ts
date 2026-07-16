@@ -26,12 +26,12 @@ export function getNextZoomPercent(currentPercent: number): number | null {
 }
 
 export type PreviewShortcutAction =
-  | "fit"
-  | "fullscreen"
-  | "shortcuts"
-  | "zoom-in"
-  | "zoom-out"
-  | "zoom-reset";
+  | 'fit'
+  | 'fullscreen'
+  | 'shortcuts'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'zoom-reset';
 
 type ShortcutInput = {
   code: string;
@@ -46,29 +46,52 @@ export function resolvePreviewShortcut(input: ShortcutInput): PreviewShortcutAct
     return null;
   }
 
-  if (input.key === "?") {
-    return "shortcuts";
+  if (input.key === '?') {
+    return 'shortcuts';
   }
 
   if (!input.previewActive) {
     return null;
   }
 
-  if (input.code === "Minus" && !input.shiftKey) {
-    return "zoom-out";
+  if (input.code === 'Minus' && !input.shiftKey) {
+    return 'zoom-out';
   }
-  if (input.code === "Equal" && input.shiftKey) {
-    return "zoom-in";
+  if (input.code === 'Equal' && input.shiftKey) {
+    return 'zoom-in';
   }
-  if (input.code === "Digit0" && input.shiftKey) {
-    return "zoom-reset";
+  if (input.code === 'Digit0' && input.shiftKey) {
+    return 'zoom-reset';
   }
-  if (input.code === "Digit1" && input.shiftKey) {
-    return "fit";
+  if (input.code === 'Digit1' && input.shiftKey) {
+    return 'fit';
   }
-  if (input.code === "KeyF" && input.shiftKey) {
-    return "fullscreen";
+  if (input.code === 'KeyF' && input.shiftKey) {
+    return 'fullscreen';
   }
 
   return null;
+}
+
+// Structural element type instead of HTMLElement: this file is also compiled by
+// the node tsconfig project (no DOM lib) for the tsx unit tests.
+export function moveMenuFocus<T extends { focus(): void }>(
+  items: T[],
+  current: T | null,
+  direction: 1 | -1,
+): T | null {
+  if (items.length === 0) {
+    return null;
+  }
+
+  const currentIndex = current === null ? -1 : items.indexOf(current);
+  const nextIndex =
+    currentIndex < 0
+      ? direction > 0
+        ? 0
+        : items.length - 1
+      : (currentIndex + direction + items.length) % items.length;
+  const next = items[nextIndex] ?? null;
+  next?.focus();
+  return next;
 }
