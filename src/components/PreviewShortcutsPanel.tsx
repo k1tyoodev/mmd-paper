@@ -1,41 +1,42 @@
-import { useEffect, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
-import { X } from "lucide-react";
+import { X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 
 type PreviewShortcutsPanelProps = {
-  modifierLabel: "⌘" | "Ctrl";
+  modifierLabel: '⌘' | 'Ctrl';
   onClose: () => void;
 };
 
 const SHEET_CLOSE_DISTANCE = 80;
 
-function getShortcutGroups(modifierLabel: "⌘" | "Ctrl") {
-  const redoKeys = modifierLabel === "⌘" ? ["⌘", "⇧", "Z"] : ["Ctrl", "Shift", "Z"];
+function getShortcutGroups(modifierLabel: '⌘' | 'Ctrl') {
+  const redoKeys = modifierLabel === '⌘' ? ['⌘', '⇧', 'Z'] : ['Ctrl', 'Shift', 'Z'];
 
   return [
     {
-      label: "Editing",
+      label: 'Editing',
       items: [
-        { action: "Undo source edit", keys: [modifierLabel, "Z"] },
-        { action: "Redo source edit", keys: redoKeys },
-        ...(modifierLabel === "Ctrl" ? [{ action: "Redo source edit", keys: ["Ctrl", "Y"] }] : []),
+        { action: 'Undo source edit', keys: [modifierLabel, 'Z'] },
+        { action: 'Redo source edit', keys: redoKeys },
+        ...(modifierLabel === 'Ctrl' ? [{ action: 'Redo source edit', keys: ['Ctrl', 'Y'] }] : []),
       ],
     },
     {
-      label: "Preview",
+      label: 'Preview',
       items: [
-        { action: "Zoom out", keys: ["−"] },
-        { action: "Zoom in", keys: ["+"] },
-        { action: "Reset to 100%", keys: ["Shift", "0"] },
-        { action: "Fit to viewport", keys: ["Shift", "1"] },
-        { action: "Toggle fullscreen", keys: ["Shift", "F"] },
+        { action: 'Zoom out', keys: ['−'] },
+        { action: 'Zoom in', keys: ['+'] },
+        { action: 'Reset to 100%', keys: ['Shift', '0'] },
+        { action: 'Fit to viewport', keys: ['Shift', '1'] },
+        { action: 'Toggle fullscreen', keys: ['Shift', 'F'] },
       ],
     },
     {
-      label: "Panels",
+      label: 'Panels',
       items: [
-        { action: "Toggle shortcuts", keys: ["?"] },
-        { action: "Dismiss current surface", keys: ["Esc"] },
+        { action: 'Toggle shortcuts', keys: ['?'] },
+        { action: 'Dismiss current surface', keys: ['Esc'] },
+        { action: 'Resize split (divider focused)', keys: ['←', '→'] },
       ],
     },
   ];
@@ -54,14 +55,14 @@ export default function PreviewShortcutsPanel(props: PreviewShortcutsPanelProps)
   }, []);
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLElement>): void {
-    if (event.key === "Escape") {
+    if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
       props.onClose();
       return;
     }
 
-    if (event.key !== "Tab") {
+    if (event.key !== 'Tab') {
       return;
     }
 
@@ -85,7 +86,7 @@ export default function PreviewShortcutsPanel(props: PreviewShortcutsPanelProps)
   }
 
   function handleDragStart(event: ReactPointerEvent<HTMLDivElement>): void {
-    if (!window.matchMedia("(max-width: 960px)").matches) {
+    if (!window.matchMedia('(max-width: 960px)').matches) {
       return;
     }
 
@@ -126,7 +127,7 @@ export default function PreviewShortcutsPanel(props: PreviewShortcutsPanelProps)
       role="dialog"
       aria-modal="true"
       aria-labelledby="preview-shortcuts-title"
-      style={{ "--sheet-drag-offset": `${dragOffset}px` } as React.CSSProperties}
+      style={{ '--sheet-drag-offset': `${dragOffset}px` } as React.CSSProperties}
       onKeyDown={handleKeyDown}
     >
       <div
@@ -162,7 +163,7 @@ export default function PreviewShortcutsPanel(props: PreviewShortcutsPanelProps)
             <h4>{group.label}</h4>
             <dl>
               {group.items.map((item) => (
-                <div key={`${group.label}-${item.action}-${item.keys.join("-")}`}>
+                <div key={`${group.label}-${item.action}-${item.keys.join('-')}`}>
                   <dt>{item.action}</dt>
                   <dd>
                     {item.keys.map((key) => (

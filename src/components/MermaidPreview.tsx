@@ -25,6 +25,7 @@ import {
   getPreviousZoomPercent,
   MAX_ZOOM_PERCENT,
   MIN_ZOOM_PERCENT,
+  moveMenuFocus,
   resolvePreviewShortcut,
 } from "@/utils/previewControls";
 
@@ -178,6 +179,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   const svgHostRef = useRef<HTMLDivElement | null>(null);
   const textCanvasRef = useRef<HTMLPreElement | null>(null);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const exportButtonRef = useRef<HTMLButtonElement | null>(null);
   const viewportMenuRef = useRef<HTMLDivElement | null>(null);
   const shortcutsButtonRef = useRef<HTMLButtonElement | null>(null);
   const viewportMenuCloseTimer = useRef<number | null>(null);
@@ -561,8 +563,13 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     }));
   }
 
-  function handleExportAction(action: ExportAction): void {
+  const closeExportMenu = useCallback((): void => {
     setOpenSurface(null);
+    requestAnimationFrame(() => exportButtonRef.current?.focus());
+  }, []);
+
+  function handleExportAction(action: ExportAction): void {
+    closeExportMenu();
     switch (action.kind) {
       case "copy-svg":
         props.onCopySvg();
@@ -651,11 +658,43 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     }
 
     event.preventDefault();
-    const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
-    const direction = event.key === "ArrowDown" ? 1 : -1;
-    const nextIndex =
-      currentIndex < 0 ? (direction > 0 ? 0 : items.length - 1) : currentIndex + direction;
-    items[(nextIndex + items.length) % items.length]?.focus();
+    moveMenuFocus(
+      items,
+      document.activeElement as HTMLElement | null,
+      event.key === "ArrowDown" ? 1 : -1,
+    );
+  }
+
+  function handleExportMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void {
+    const items = Array.from(
+      exportMenuRef.current?.querySelectorAll<HTMLButtonElement>(
+        "[role='menuitem']:not(:disabled)",
+      ) ?? [],
+    );
+    if (items.length === 0) {
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      moveMenuFocus(
+        items,
+        document.activeElement as HTMLElement | null,
+        event.key === "ArrowDown" ? 1 : -1,
+      );
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      items[0]?.focus();
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      items.at(-1)?.focus();
+    }
   }
 
   useEffect(() => {
@@ -668,6 +707,14 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
       cancelAnimationFrame(id);
     };
   }, [isFullscreen, zoomToFit]);
+
+  useEffect(() => {
+    if (!isExportMenuOpen) {
+      return;
+    }
+
+    exportMenuRef.current?.querySelector<HTMLElement>("[role='menuitem']:not(:disabled)")?.focus();
+  }, [isExportMenuOpen]);
 
   useEffect(() => {
     if (!isExportMenuOpen) {
@@ -706,6 +753,9 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
         if (openSurface === "shortcuts") {
           event.preventDefault();
           closeShortcuts();
+        } else if (openSurface === "export") {
+          event.preventDefault();
+          closeExportMenu();
         } else if (openSurface !== null) {
           event.preventDefault();
           setOpenSurface(null);
@@ -752,6 +802,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    closeExportMenu,
     closeShortcuts,
     isFullscreen,
     openSurface,
@@ -782,6 +833,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
         <div className="preview-info">
           <div ref={exportMenuRef} className="export-menu">
             <button
+              ref={exportButtonRef}
               type="button"
               className="export-menu-button"
               aria-label="Preview export"
@@ -795,7 +847,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
               <ChevronDown size={13} strokeWidth={1.8} aria-hidden="true" />
             </button>
             {isExportMenuOpen ? (
-              <div className="export-menu-list" role="menu">
+              <div className="export-menu-list" role="menu" onKeyDown={handleExportMenuKeyDown}>
                 {exportItems.map((item) => (
                   <button
                     key={item.key}

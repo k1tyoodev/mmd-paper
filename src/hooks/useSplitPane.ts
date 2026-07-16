@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   RefObject,
@@ -283,6 +284,33 @@ export function useSplitPane({
     [containerRef, restoreToLastSplit, setHealthyRatio, setPendingCollapse],
   );
 
+  const handleDividerKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLElement>): void => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+        return;
+      }
+
+      const mode = workspaceModeRef.current;
+      if (isStableHiddenMode(mode)) {
+        restoreToLastSplit();
+        event.preventDefault();
+        return;
+      }
+
+      if (mode !== "split") {
+        return;
+      }
+
+      const container = containerRef.current;
+      const containerWidth = container?.getBoundingClientRect().width ?? 0;
+      const step = event.shiftKey ? 0.1 : 0.02;
+      const direction = event.key === "ArrowLeft" ? -1 : 1;
+      setHealthyRatio(ratioRef.current + direction * step, containerWidth);
+      event.preventDefault();
+    },
+    [containerRef, restoreToLastSplit, setHealthyRatio],
+  );
+
   useEffect(() => {
     function onPointerMove(event: PointerEvent): void {
       if (activePointerId.current === null || activePointerId.current !== event.pointerId) {
@@ -381,5 +409,6 @@ export function useSplitPane({
     pendingCollapse,
     handleDividerPointerDown,
     handleDividerDoubleClick,
+    handleDividerKeyDown,
   };
 }
