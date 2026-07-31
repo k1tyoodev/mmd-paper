@@ -1,16 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   RefObject,
-} from "react";
-import type { WorkspaceMode } from "@/types/playground";
-import { clamp } from "@/utils/color";
+} from 'react';
 
-export type PendingCollapseTarget = "editor" | "preview" | null;
+import type { WorkspaceMode } from '@/types/playground';
+import { clamp } from '@/utils/color';
+import { resolveDividerKeyboardAction } from '@/utils/splitPane';
 
-type StableHiddenWorkspaceMode = "editor-hidden" | "preview-hidden";
+export type PendingCollapseTarget = 'editor' | 'preview' | null;
+
+type StableHiddenWorkspaceMode = 'editor-hidden' | 'preview-hidden';
 
 const SPLIT_DIVIDER_WIDTH = 10;
 
@@ -40,11 +42,11 @@ interface ActiveDragState {
 }
 
 function isStableHiddenMode(mode: WorkspaceMode): mode is StableHiddenWorkspaceMode {
-  return mode === "editor-hidden" || mode === "preview-hidden";
+  return mode === 'editor-hidden' || mode === 'preview-hidden';
 }
 
 function canStartDividerDrag(mode: WorkspaceMode): boolean {
-  return mode === "split" || isStableHiddenMode(mode);
+  return mode === 'split' || isStableHiddenMode(mode);
 }
 
 export function useSplitPane({
@@ -131,7 +133,7 @@ export function useSplitPane({
     const fallbackRatio = containerWidth > 0 ? lastSplitRatioRef.current : 0.5;
     const { minRatio, maxRatio } = resolveRatioBounds(containerWidth);
     const nextRatio = clamp(fallbackRatio, minRatio, maxRatio);
-    const nextMode = mode === "editor-hidden" ? "restoring-editor" : "restoring-preview";
+    const nextMode = mode === 'editor-hidden' ? 'restoring-editor' : 'restoring-preview';
     workspaceModeRef.current = nextMode;
     ratioRef.current = nextRatio;
     lastSplitRatioRef.current = nextRatio;
@@ -149,7 +151,7 @@ export function useSplitPane({
   ]);
 
   const clampRatioToBounds = useCallback((): void => {
-    if (workspaceModeRef.current !== "split") {
+    if (workspaceModeRef.current !== 'split') {
       return;
     }
 
@@ -194,7 +196,7 @@ export function useSplitPane({
         const pendingRatio = clamp(rawRatio, liveRatioFloor, 1 - liveRatioFloor);
         ratioRef.current = pendingRatio;
         setRatio(pendingRatio);
-        setPendingCollapse("editor");
+        setPendingCollapse('editor');
         return;
       }
 
@@ -202,7 +204,7 @@ export function useSplitPane({
         const pendingRatio = clamp(rawRatio, liveRatioFloor, 1 - liveRatioFloor);
         ratioRef.current = pendingRatio;
         setRatio(pendingRatio);
-        setPendingCollapse("preview");
+        setPendingCollapse('preview');
         return;
       }
 
@@ -214,8 +216,8 @@ export function useSplitPane({
 
   const restoreFromHiddenDrag = useCallback(
     (clientX: number): void => {
-      workspaceModeRef.current = "split";
-      setWorkspaceMode("split");
+      workspaceModeRef.current = 'split';
+      setWorkspaceMode('split');
       setPendingCollapse(null);
       updateSplitRatio(clientX, false);
     },
@@ -229,7 +231,7 @@ export function useSplitPane({
     }
 
     const nextMode: WorkspaceMode =
-      pendingTarget === "editor" ? "collapsing-editor" : "collapsing-preview";
+      pendingTarget === 'editor' ? 'collapsing-editor' : 'collapsing-preview';
     workspaceModeRef.current = nextMode;
     setWorkspaceMode(nextMode);
     setPendingCollapse(null);
@@ -256,13 +258,13 @@ export function useSplitPane({
         restoredFromHidden: false,
       };
 
-      if (modeAtStart === "split") {
+      if (modeAtStart === 'split') {
         updateSplitRatio(event.clientX, true);
       }
 
       target.setPointerCapture?.(event.pointerId);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
       event.preventDefault();
     },
     [updateSplitRatio],
@@ -271,7 +273,7 @@ export function useSplitPane({
   const handleDividerDoubleClick = useCallback(
     (event: ReactMouseEvent<HTMLElement>): void => {
       event.preventDefault();
-      if (workspaceModeRef.current !== "split") {
+      if (workspaceModeRef.current !== 'split') {
         restoreToLastSplit();
         return;
       }
@@ -286,26 +288,24 @@ export function useSplitPane({
 
   const handleDividerKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>): void => {
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      const action = resolveDividerKeyboardAction(
+        event.key,
+        event.shiftKey,
+        workspaceModeRef.current,
+      );
+      if (!action) {
         return;
       }
 
-      const mode = workspaceModeRef.current;
-      if (isStableHiddenMode(mode)) {
+      if (action.type === 'restore') {
         restoreToLastSplit();
         event.preventDefault();
         return;
       }
 
-      if (mode !== "split") {
-        return;
-      }
-
       const container = containerRef.current;
       const containerWidth = container?.getBoundingClientRect().width ?? 0;
-      const step = event.shiftKey ? 0.1 : 0.02;
-      const direction = event.key === "ArrowLeft" ? -1 : 1;
-      setHealthyRatio(ratioRef.current + direction * step, containerWidth);
+      setHealthyRatio(ratioRef.current + action.delta, containerWidth);
       event.preventDefault();
     },
     [containerRef, restoreToLastSplit, setHealthyRatio],
@@ -322,7 +322,7 @@ export function useSplitPane({
         return;
       }
 
-      if (drag.modeAtStart === "editor-hidden" && !drag.restoredFromHidden) {
+      if (drag.modeAtStart === 'editor-hidden' && !drag.restoredFromHidden) {
         if (event.clientX - drag.startClientX <= 2) {
           return;
         }
@@ -332,7 +332,7 @@ export function useSplitPane({
         return;
       }
 
-      if (drag.modeAtStart === "preview-hidden" && !drag.restoredFromHidden) {
+      if (drag.modeAtStart === 'preview-hidden' && !drag.restoredFromHidden) {
         if (drag.startClientX - event.clientX <= 2) {
           return;
         }
@@ -342,7 +342,7 @@ export function useSplitPane({
         return;
       }
 
-      if (workspaceModeRef.current === "split") {
+      if (workspaceModeRef.current === 'split') {
         updateSplitRatio(event.clientX, true);
       }
 
@@ -354,7 +354,7 @@ export function useSplitPane({
         return;
       }
 
-      if (shouldCommit && workspaceModeRef.current === "split") {
+      if (shouldCommit && workspaceModeRef.current === 'split') {
         commitPendingCollapse();
       } else {
         if (pendingCollapseRef.current) {
@@ -369,8 +369,8 @@ export function useSplitPane({
       activePointerId.current = null;
       activeDrag.current = null;
       setIsDragging(false);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     }
 
     function onPointerUp(event: PointerEvent): void {
@@ -381,19 +381,19 @@ export function useSplitPane({
       stopDragging(event, false);
     }
 
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerCancel);
-    window.addEventListener("resize", clampRatioToBounds);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
+    window.addEventListener('resize', clampRatioToBounds);
     clampRatioToBounds();
 
     return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerCancel);
-      window.removeEventListener("resize", clampRatioToBounds);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+      window.removeEventListener('resize', clampRatioToBounds);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
   }, [
     clampRatioToBounds,

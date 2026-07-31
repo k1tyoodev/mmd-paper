@@ -1,32 +1,54 @@
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import test from "node:test";
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-const stylesheetPath = fileURLToPath(new URL("../src/styles/global.css", import.meta.url));
+const stylesheetPath = fileURLToPath(new URL('../src/styles/global.css', import.meta.url));
 const previewComponentPath = fileURLToPath(
-  new URL("../src/components/MermaidPreview.tsx", import.meta.url),
+  new URL('../src/components/MermaidPreview.tsx', import.meta.url),
 );
 
 function readRuleBody(stylesheet: string, selector: string): string {
-  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const rulePattern = new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, "u");
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  const rulePattern = new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, 'u');
   const match = rulePattern.exec(stylesheet);
   assert.ok(match?.[1], `Expected ${selector} rule to exist`);
   return match[1];
 }
 
-await test("keeps workspace panes on the first grid row when a hidden pane spans columns", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
-  const paneRule = readRuleBody(stylesheet, ".pane");
-  const dividerRule = readRuleBody(stylesheet, ".divider");
+function readBlockBody(source: string, headerPattern: RegExp): string {
+  const headerMatch = headerPattern.exec(source);
+  assert.ok(headerMatch, `Expected ${headerPattern} block to exist`);
+  const openBraceIndex = source.indexOf('{', headerMatch.index);
+  assert.notEqual(openBraceIndex, -1, `Expected ${headerPattern} block to open`);
+
+  let depth = 0;
+  for (let index = openBraceIndex; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '{') {
+      depth += 1;
+    } else if (character === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(openBraceIndex + 1, index);
+      }
+    }
+  }
+
+  assert.fail(`Expected ${headerPattern} block to close`);
+}
+
+await test('keeps workspace panes on the first grid row when a hidden pane spans columns', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const paneRule = readRuleBody(stylesheet, '.pane');
+  const dividerRule = readRuleBody(stylesheet, '.divider');
   const editorHiddenPreviewRule = readRuleBody(
     stylesheet,
-    ".workspace-editor-hidden .preview-pane",
+    '.workspace-editor-hidden .preview-pane',
   );
   const previewHiddenEditorRule = readRuleBody(
     stylesheet,
-    ".workspace-preview-hidden .editor-pane",
+    '.workspace-preview-hidden .editor-pane',
   );
 
   assert.match(paneRule, /grid-row:\s*1;/u);
@@ -35,9 +57,9 @@ await test("keeps workspace panes on the first grid row when a hidden pane spans
   assert.match(previewHiddenEditorRule, /grid-column:\s*1\s*\/\s*4;/u);
 });
 
-await test("keeps editor scrollbar radius aligned with the preview output switcher", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
-  const rootRule = readRuleBody(stylesheet, ":root");
+await test('keeps editor scrollbar radius aligned with the preview output switcher', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const rootRule = readRuleBody(stylesheet, ':root');
 
   assert.match(rootRule, /--control-radius:\s*6px;/u);
   assert.match(
@@ -50,10 +72,10 @@ await test("keeps editor scrollbar radius aligned with the preview output switch
   );
 });
 
-await test("keeps viewport fullscreen controls inside the preview viewport", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
-  const fullscreenRule = readRuleBody(stylesheet, ".preview-viewport.preview-viewport-fullscreen");
-  const controlsRule = readRuleBody(stylesheet, ".preview-viewport-controls");
+await test('keeps viewport fullscreen controls inside the preview viewport', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const fullscreenRule = readRuleBody(stylesheet, '.preview-viewport.preview-viewport-fullscreen');
+  const controlsRule = readRuleBody(stylesheet, '.preview-viewport-controls');
 
   assert.match(fullscreenRule, /position:\s*fixed;/u);
   assert.match(fullscreenRule, /inset:\s*0;/u);
@@ -64,10 +86,10 @@ await test("keeps viewport fullscreen controls inside the preview viewport", asy
   assert.match(controlsRule, /bottom:\s*12px;/u);
 });
 
-await test("keeps preview viewport hover colors in one atomic state change", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
-  const viewportButtonRule = readRuleBody(stylesheet, ".preview-viewport-controls button");
-  const shortcutsCloseRule = readRuleBody(stylesheet, ".preview-shortcuts-close");
+await test('keeps preview viewport hover colors in one atomic state change', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const viewportButtonRule = readRuleBody(stylesheet, '.preview-viewport-controls button');
+  const shortcutsCloseRule = readRuleBody(stylesheet, '.preview-shortcuts-close');
 
   assert.match(viewportButtonRule, /transition:\s*none;/u);
   assert.match(shortcutsCloseRule, /transition:\s*none;/u);
@@ -77,20 +99,20 @@ await test("keeps preview viewport hover colors in one atomic state change", asy
   );
 });
 
-await test("keeps a viewport inset beside the compact desktop zoom menu", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
-  const zoomMenuRule = readRuleBody(stylesheet, ".preview-zoom-menu");
+await test('keeps a viewport inset beside the compact desktop zoom menu', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const zoomMenuRule = readRuleBody(stylesheet, '.preview-zoom-menu');
 
   assert.match(zoomMenuRule, /right:\s*50%;/u);
   assert.match(zoomMenuRule, /width:\s*196px;/u);
   assert.match(zoomMenuRule, /transform:\s*translateX\(50%\) translateY\(5px\) scale\(0\.98\);/u);
 });
 
-await test("animates the zoom menu in and out without leaving hidden controls interactive", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
-  const previewComponent = await readFile(previewComponentPath, "utf8");
-  const zoomMenuRule = readRuleBody(stylesheet, ".preview-zoom-menu");
-  const openMenuRule = readRuleBody(stylesheet, '.preview-zoom-menu[data-state="open"]');
+await test('animates the zoom menu in and out without leaving hidden controls interactive', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const previewComponent = await readFile(previewComponentPath, 'utf8');
+  const zoomMenuRule = readRuleBody(stylesheet, '.preview-zoom-menu');
+  const openMenuRule = readRuleBody(stylesheet, ".preview-zoom-menu[data-state='open']");
 
   assert.match(zoomMenuRule, /visibility:\s*hidden;/u);
   assert.match(zoomMenuRule, /opacity:\s*0;/u);
@@ -99,14 +121,17 @@ await test("animates the zoom menu in and out without leaving hidden controls in
   assert.match(openMenuRule, /visibility:\s*visible;/u);
   assert.match(openMenuRule, /opacity:\s*1;/u);
   assert.match(openMenuRule, /pointer-events:\s*auto;/u);
-  assert.match(previewComponent, /data-state=\{isViewportMenuOpen \? "open" : "closed"\}/u);
+  assert.match(
+    previewComponent,
+    /data-state=\{isViewportMenuOpen \? ["']open["'] : ["']closed["']\}/u,
+  );
   assert.match(previewComponent, /inert=\{!isViewportMenuOpen\}/u);
 });
 
-await test("keeps shortcut surfaces contained by the preview viewport", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
-  const panelRule = readRuleBody(stylesheet, ".preview-shortcuts-panel");
-  const guardRule = readRuleBody(stylesheet, ".preview-shortcuts-interaction-guard");
+await test('keeps shortcut surfaces contained by the preview viewport', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const panelRule = readRuleBody(stylesheet, '.preview-shortcuts-panel');
+  const guardRule = readRuleBody(stylesheet, '.preview-shortcuts-interaction-guard');
 
   assert.match(panelRule, /position:\s*absolute;/u);
   assert.match(panelRule, /width:\s*320px;/u);
@@ -118,13 +143,13 @@ await test("keeps shortcut surfaces contained by the preview viewport", async ()
   assert.match(stylesheet, /height:\s*auto;/u);
 });
 
-await test("keeps shortcut panel interactions out of canvas pointer capture", async () => {
-  const previewComponent = await readFile(previewComponentPath, "utf8");
-  const functionStart = previewComponent.indexOf("function isViewportChromeEvent");
-  const functionEnd = previewComponent.indexOf("function isEditableTarget", functionStart);
+await test('keeps shortcut panel interactions out of canvas pointer capture', async () => {
+  const previewComponent = await readFile(previewComponentPath, 'utf8');
+  const functionStart = previewComponent.indexOf('function isViewportChromeEvent');
+  const functionEnd = previewComponent.indexOf('function isEditableTarget', functionStart);
 
-  assert.notEqual(functionStart, -1, "Expected isViewportChromeEvent to exist");
-  assert.notEqual(functionEnd, -1, "Expected isViewportChromeEvent boundary to exist");
+  assert.notEqual(functionStart, -1, 'Expected isViewportChromeEvent to exist');
+  assert.notEqual(functionEnd, -1, 'Expected isViewportChromeEvent boundary to exist');
   assert.match(previewComponent.slice(functionStart, functionEnd), /\.preview-shortcuts-panel/u);
   assert.match(
     previewComponent.slice(functionStart, functionEnd),
@@ -132,8 +157,8 @@ await test("keeps shortcut panel interactions out of canvas pointer capture", as
   );
 });
 
-await test("keeps feedback banners above the viewport controls", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
+await test('keeps feedback banners above the viewport controls', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
 
   assert.match(
     stylesheet,
@@ -145,16 +170,17 @@ await test("keeps feedback banners above the viewport controls", async () => {
   );
 });
 
-await test("shows only the active mobile pane in the workspace", async () => {
-  const stylesheet = await readFile(stylesheetPath, "utf8");
+await test('shows only the active mobile pane in the workspace', async () => {
+  const stylesheet = await readFile(stylesheetPath, 'utf8');
+  const mobileStyles = readBlockBody(stylesheet, /@media\s*\(max-width:\s*960px\)/u);
 
   assert.match(
-    stylesheet,
-    /@media\s*\(max-width:\s*960px\)[\s\S]*\.editor-preview-workspace\[data-mobile-pane="editor"\] \.preview-pane,\s*\.editor-preview-workspace\[data-mobile-pane="preview"\] \.editor-pane\s*\{\s*display:\s*none;/u,
+    mobileStyles,
+    /\.editor-preview-workspace\[data-mobile-pane=["']editor["']\] \.preview-pane,\s*\.editor-preview-workspace\[data-mobile-pane=["']preview["']\] \.editor-pane\s*\{\s*display:\s*none;/u,
   );
   assert.match(
-    stylesheet,
-    /@media\s*\(max-width:\s*960px\)[\s\S]*\.editor-preview-workspace\[data-mobile-pane="editor"\] \.editor-pane,\s*\.editor-preview-workspace\[data-mobile-pane="preview"\] \.preview-pane\s*\{\s*flex:\s*1 1 100%;/u,
+    mobileStyles,
+    /\.editor-preview-workspace\[data-mobile-pane=["']editor["']\] \.editor-pane,\s*\.editor-preview-workspace\[data-mobile-pane=["']preview["']\] \.preview-pane\s*\{[^}]*flex:\s*1 1 100%;[^}]*opacity:\s*1;[^}]*filter:\s*none;[^}]*pointer-events:\s*auto;/u,
   );
   assert.doesNotMatch(stylesheet, /flex:\s*1 1 50%\s*!important/u);
 });

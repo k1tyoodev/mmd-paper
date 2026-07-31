@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -14,12 +13,14 @@ import {
   Redo2,
   Scan,
   Undo2,
-} from "lucide-react";
-import PreviewEmptyState from "@/components/PreviewEmptyState";
-import PreviewShortcutsPanel from "@/components/PreviewShortcutsPanel";
-import { RENDER_OUTPUT_MODE_OPTIONS, TEXT_COLOR_MODE_OPTIONS } from "@/types/playground";
-import type { RenderOutputMode, TextColorMode, TextOutputWarning } from "@/types/playground";
-import { clamp } from "@/utils/color";
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import PreviewEmptyState from '@/components/PreviewEmptyState';
+import PreviewShortcutsPanel from '@/components/PreviewShortcutsPanel';
+import { RENDER_OUTPUT_MODE_OPTIONS, TEXT_COLOR_MODE_OPTIONS } from '@/types/playground';
+import type { RenderOutputMode, TextColorMode, TextOutputWarning } from '@/types/playground';
+import { clamp } from '@/utils/color';
 import {
   getNextZoomPercent,
   getPreviousZoomPercent,
@@ -27,7 +28,7 @@ import {
   MIN_ZOOM_PERCENT,
   moveMenuFocus,
   resolvePreviewShortcut,
-} from "@/utils/previewControls";
+} from '@/utils/previewControls';
 
 type ViewportPoint = {
   x: number;
@@ -39,16 +40,16 @@ type ContentSize = {
   height: number;
 };
 
-type PreviewSurface = "export" | "shortcuts" | "viewport";
+type PreviewSurface = 'export' | 'shortcuts' | 'viewport';
 
-type TextOutputMode = Exclude<RenderOutputMode, "svg">;
+type TextOutputMode = Exclude<RenderOutputMode, 'svg'>;
 
 type ExportAction =
-  | { kind: "copy-svg" }
-  | { kind: "copy-png" }
-  | { kind: "download-svg" }
-  | { kind: "download-png" }
-  | { kind: "copy-text"; colorMode: TextColorMode };
+  | { kind: 'copy-svg' }
+  | { kind: 'copy-png' }
+  | { kind: 'download-svg' }
+  | { kind: 'download-png' }
+  | { kind: 'copy-text'; colorMode: TextColorMode };
 
 type ExportItem = {
   key: string;
@@ -87,7 +88,7 @@ const MAX_SCALE = MAX_ZOOM_PERCENT / 100;
 const FIT_MAX_SCALE = 1;
 const WHEEL_ZOOM_SPEED = 0.0018;
 const FIT_PADDING = 36;
-const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
+const FINE_POINTER_QUERY = '(hover: hover) and (pointer: fine)';
 
 const OUTPUT_MODE_ITEMS = RENDER_OUTPUT_MODE_OPTIONS.map((item) => ({
   key: item.value,
@@ -106,8 +107,8 @@ function getSvgIntrinsicSize(svgElement: SVGSVGElement): ContentSize {
     return { width: viewBox.width, height: viewBox.height };
   }
 
-  const width = Number.parseFloat(svgElement.getAttribute("width") ?? "");
-  const height = Number.parseFloat(svgElement.getAttribute("height") ?? "");
+  const width = Number.parseFloat(svgElement.getAttribute('width') ?? '');
+  const height = Number.parseFloat(svgElement.getAttribute('height') ?? '');
   if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
     return { width, height };
   }
@@ -123,7 +124,7 @@ function getSvgIntrinsicSize(svgElement: SVGSVGElement): ContentSize {
 function useResizeObserver(targetRef: React.RefObject<Element | null>, callback: () => void): void {
   useEffect(() => {
     const target = targetRef.current;
-    if (!target || typeof ResizeObserver === "undefined") {
+    if (!target || typeof ResizeObserver === 'undefined') {
       return;
     }
 
@@ -153,7 +154,7 @@ function isViewportChromeEvent(event: Event): boolean {
     target instanceof Element &&
     Boolean(
       target.closest(
-        ".feedback-layer, .preview-toolbar-row, .preview-viewport-controls, .preview-shortcuts-panel, .preview-shortcuts-interaction-guard",
+        '.feedback-layer, .preview-toolbar-row, .preview-viewport-controls, .preview-shortcuts-panel, .preview-shortcuts-interaction-guard',
       ),
     )
   );
@@ -169,8 +170,8 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
-function getModifierLabel(): "⌘" | "Ctrl" {
-  return /Mac|iPhone|iPad/u.test(navigator.platform) ? "⌘" : "Ctrl";
+function getModifierLabel(): '⌘' | 'Ctrl' {
+  return /Mac|iPhone|iPad/u.test(navigator.platform) ? '⌘' : 'Ctrl';
 }
 
 export default function MermaidPreview(props: MermaidPreviewProps) {
@@ -181,8 +182,10 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement | null>(null);
   const viewportMenuRef = useRef<HTMLDivElement | null>(null);
+  const viewportButtonRef = useRef<HTMLButtonElement | null>(null);
   const shortcutsButtonRef = useRef<HTMLButtonElement | null>(null);
   const viewportMenuCloseTimer = useRef<number | null>(null);
+  const suppressViewportMenuFocusOpen = useRef(false);
   const pointerPositions = useRef(new Map<number, ViewportPoint>());
   const dragStartPointer = useRef<ViewportPoint | null>(null);
   const dragStartOffset = useRef<ViewportPoint | null>(null);
@@ -191,42 +194,41 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   const pinchStartWorldAnchor = useRef<ViewportPoint | null>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState<ViewportPoint>({ x: 0, y: 0 });
-  const [activePointerIds, setActivePointerIds] = useState<Set<number>>(new Set());
   const [autoFit, setAutoFit] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [openSurface, setOpenSurface] = useState<PreviewSurface | null>(null);
-  const isExportMenuOpen = openSurface === "export";
-  const isShortcutsOpen = openSurface === "shortcuts";
-  const isViewportMenuOpen = openSurface === "viewport";
+  const isExportMenuOpen = openSurface === 'export';
+  const isShortcutsOpen = openSurface === 'shortcuts';
+  const isViewportMenuOpen = openSurface === 'viewport';
 
   const hasCurrentOutput =
-    props.outputMode === "svg" ? Boolean(props.svg) : Boolean(props.asciiHtml);
+    props.outputMode === 'svg' ? Boolean(props.svg) : Boolean(props.asciiHtml);
   const zoomLabel = `${Math.round(scale * 100)}%`;
   const previousZoomPercent = getPreviousZoomPercent(scale * 100);
   const nextZoomPercent = getNextZoomPercent(scale * 100);
-  const isTransparentPreview = props.outputMode === "svg" && props.transparentApplied;
-  const visibleWarnings = props.outputMode === "svg" || props.error ? [] : props.textWarnings;
+  const isTransparentPreview = props.outputMode === 'svg' && props.transparentApplied;
+  const visibleWarnings = props.outputMode === 'svg' || props.error ? [] : props.textWarnings;
 
   const exportItems = useMemo<ExportItem[]>(() => {
-    if (props.outputMode === "svg") {
+    if (props.outputMode === 'svg') {
       return [
-        { key: "copy-svg", label: "Copy SVG", action: { kind: "copy-svg" } },
-        { key: "copy-png", label: "Copy PNG (@2x)", action: { kind: "copy-png" } },
-        { key: "download-svg", label: "Download SVG", action: { kind: "download-svg" } },
-        { key: "download-png", label: "Download PNG (@2x)", action: { kind: "download-png" } },
+        { key: 'copy-svg', label: 'Copy SVG', action: { kind: 'copy-svg' } },
+        { key: 'copy-png', label: 'Copy PNG (@2x)', action: { kind: 'copy-png' } },
+        { key: 'download-svg', label: 'Download SVG', action: { kind: 'download-svg' } },
+        { key: 'download-png', label: 'Download PNG (@2x)', action: { kind: 'download-png' } },
       ];
     }
 
     return TEXT_COLOR_MODE_OPTIONS.map((option) => ({
       key: `copy-text-${option.value}`,
       label: `Copy ${option.label}`,
-      action: { kind: "copy-text", colorMode: option.value },
+      action: { kind: 'copy-text', colorMode: option.value },
     }));
   }, [props.outputMode]);
 
   const readCurrentContentSize = useCallback((outputMode: RenderOutputMode): ContentSize | null => {
-    if (outputMode === "svg") {
-      const svgElement = svgHostRef.current?.querySelector("svg");
+    if (outputMode === 'svg') {
+      const svgElement = svgHostRef.current?.querySelector('svg');
       return svgElement instanceof SVGSVGElement ? getSvgIntrinsicSize(svgElement) : null;
     }
 
@@ -303,7 +305,6 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
 
   const clearPointerState = useCallback((): void => {
     pointerPositions.current = new Map();
-    setActivePointerIds(new Set());
     dragStartPointer.current = null;
     dragStartOffset.current = null;
     pinchStartDistance.current = 0;
@@ -457,9 +458,6 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
 
     viewportRef.current?.setPointerCapture(event.pointerId);
     pointerPositions.current.set(event.pointerId, localPoint);
-    const nextIds = new Set(activePointerIds);
-    nextIds.add(event.pointerId);
-    setActivePointerIds(nextIds);
 
     if (pointerPositions.current.size >= 2) {
       dragStartPointer.current = null;
@@ -473,7 +471,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   }
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>): void {
-    if (!hasCurrentOutput || !activePointerIds.has(event.pointerId)) {
+    if (!hasCurrentOutput || !pointerPositions.current.has(event.pointerId)) {
       return;
     }
 
@@ -520,14 +518,11 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>): void {
-    if (!activePointerIds.has(event.pointerId)) {
+    if (!pointerPositions.current.has(event.pointerId)) {
       return;
     }
 
     pointerPositions.current.delete(event.pointerId);
-    const nextIds = new Set(activePointerIds);
-    nextIds.delete(event.pointerId);
-    setActivePointerIds(nextIds);
 
     if (pointerPositions.current.size >= 2) {
       beginPinch();
@@ -571,20 +566,20 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   function handleExportAction(action: ExportAction): void {
     closeExportMenu();
     switch (action.kind) {
-      case "copy-svg":
+      case 'copy-svg':
         props.onCopySvg();
         return;
-      case "copy-png":
+      case 'copy-png':
         props.onCopyPng();
         return;
-      case "download-svg":
+      case 'download-svg':
         props.onDownloadSvg();
         return;
-      case "download-png":
+      case 'download-png':
         props.onDownloadPng();
         return;
-      case "copy-text":
-        if (props.outputMode !== "svg") {
+      case 'copy-text':
+        if (props.outputMode !== 'svg') {
           props.onCopyText({ mode: props.outputMode, colorMode: action.colorMode });
         }
     }
@@ -600,8 +595,23 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
       window.clearTimeout(viewportMenuCloseTimer.current);
       viewportMenuCloseTimer.current = null;
     }
-    setOpenSurface("viewport");
+    setOpenSurface('viewport');
   }
+
+  const closeViewportMenu = useCallback((restoreFocus = true): void => {
+    setOpenSurface((current) => (current === 'viewport' ? null : current));
+    if (!restoreFocus) {
+      return;
+    }
+
+    suppressViewportMenuFocusOpen.current = true;
+    requestAnimationFrame(() => {
+      viewportButtonRef.current?.focus();
+      requestAnimationFrame(() => {
+        suppressViewportMenuFocusOpen.current = false;
+      });
+    });
+  }, []);
 
   function scheduleViewportMenuClose(): void {
     if (!window.matchMedia(FINE_POINTER_QUERY).matches) {
@@ -611,7 +621,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
       window.clearTimeout(viewportMenuCloseTimer.current);
     }
     viewportMenuCloseTimer.current = window.setTimeout(() => {
-      setOpenSurface((current) => (current === "viewport" ? null : current));
+      closeViewportMenu(Boolean(viewportMenuRef.current?.contains(document.activeElement)));
       viewportMenuCloseTimer.current = null;
     }, 150);
   }
@@ -622,12 +632,12 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
   }, []);
 
   const toggleShortcuts = useCallback((): void => {
-    if (openSurface === "shortcuts") {
+    if (openSurface === 'shortcuts') {
       closeShortcuts();
       return;
     }
 
-    setOpenSurface("shortcuts");
+    setOpenSurface('shortcuts');
   }, [closeShortcuts, openSurface]);
 
   function handlePercentClick(): void {
@@ -637,14 +647,14 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     }
 
     if (isViewportMenuOpen) {
-      setOpenSurface(null);
+      closeViewportMenu(false);
     } else {
       openViewportMenu();
     }
   }
 
   function handleViewportMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void {
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
       return;
     }
 
@@ -661,7 +671,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     moveMenuFocus(
       items,
       document.activeElement as HTMLElement | null,
-      event.key === "ArrowDown" ? 1 : -1,
+      event.key === 'ArrowDown' ? 1 : -1,
     );
   }
 
@@ -675,23 +685,23 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
       return;
     }
 
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       moveMenuFocus(
         items,
         document.activeElement as HTMLElement | null,
-        event.key === "ArrowDown" ? 1 : -1,
+        event.key === 'ArrowDown' ? 1 : -1,
       );
       return;
     }
 
-    if (event.key === "Home") {
+    if (event.key === 'Home') {
       event.preventDefault();
       items[0]?.focus();
       return;
     }
 
-    if (event.key === "End") {
+    if (event.key === 'End') {
       event.preventDefault();
       items.at(-1)?.focus();
     }
@@ -723,12 +733,12 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
 
     const handleDocumentPointerDown = (event: PointerEvent): void => {
       if (!exportMenuRef.current?.contains(event.target as Node)) {
-        setOpenSurface((current) => (current === "export" ? null : current));
+        setOpenSurface((current) => (current === 'export' ? null : current));
       }
     };
-    document.addEventListener("pointerdown", handleDocumentPointerDown);
+    document.addEventListener('pointerdown', handleDocumentPointerDown);
     return () => {
-      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+      document.removeEventListener('pointerdown', handleDocumentPointerDown);
     };
   }, [isExportMenuOpen]);
 
@@ -739,26 +749,26 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
 
     const handleDocumentPointerDown = (event: PointerEvent): void => {
       if (!viewportMenuRef.current?.contains(event.target as Node)) {
-        setOpenSurface((current) => (current === "viewport" ? null : current));
+        setOpenSurface((current) => (current === 'viewport' ? null : current));
       }
     };
 
-    document.addEventListener("pointerdown", handleDocumentPointerDown);
-    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
+    document.addEventListener('pointerdown', handleDocumentPointerDown);
+    return () => document.removeEventListener('pointerdown', handleDocumentPointerDown);
   }, [isViewportMenuOpen]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        if (openSurface === "shortcuts") {
+      if (event.key === 'Escape') {
+        if (openSurface === 'shortcuts') {
           event.preventDefault();
           closeShortcuts();
-        } else if (openSurface === "export") {
+        } else if (openSurface === 'export') {
           event.preventDefault();
           closeExportMenu();
         } else if (openSurface !== null) {
           event.preventDefault();
-          setOpenSurface(null);
+          closeViewportMenu();
         } else if (isFullscreen) {
           event.preventDefault();
           setIsFullscreen(false);
@@ -779,31 +789,32 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
 
       event.preventDefault();
       switch (shortcut) {
-        case "fit":
+        case 'fit':
           zoomToFit();
           return;
-        case "fullscreen":
+        case 'fullscreen':
           toggleViewportFullscreen();
           return;
-        case "shortcuts":
+        case 'shortcuts':
           toggleShortcuts();
           return;
-        case "zoom-in":
+        case 'zoom-in':
           zoomInOneStep();
           return;
-        case "zoom-out":
+        case 'zoom-out':
           zoomOutOneStep();
           return;
-        case "zoom-reset":
+        case 'zoom-reset':
           zoomToOneHundredPercent();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     closeExportMenu,
     closeShortcuts,
+    closeViewportMenu,
     isFullscreen,
     openSurface,
     toggleShortcuts,
@@ -822,8 +833,8 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
     [],
   );
 
-  const renderedOffsetX = props.outputMode === "svg" ? snapToDevicePixel(offset.x) : offset.x;
-  const renderedOffsetY = props.outputMode === "svg" ? snapToDevicePixel(offset.y) : offset.y;
+  const renderedOffsetX = props.outputMode === 'svg' ? snapToDevicePixel(offset.x) : offset.x;
+  const renderedOffsetY = props.outputMode === 'svg' ? snapToDevicePixel(offset.y) : offset.y;
   const modifierLabel = getModifierLabel();
 
   return (
@@ -840,7 +851,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
               aria-haspopup="menu"
               aria-expanded={isExportMenuOpen}
               disabled={!props.canExport}
-              onClick={() => setOpenSurface((current) => (current === "export" ? null : "export"))}
+              onClick={() => setOpenSurface((current) => (current === 'export' ? null : 'export'))}
             >
               <Copy size={13} strokeWidth={1.8} aria-hidden="true" />
               <span>Export</span>
@@ -868,13 +879,13 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
         <div
           ref={viewportRef}
           className={[
-            "preview-viewport",
-            isTransparentPreview ? "preview-viewport-transparent" : "",
-            isFullscreen ? "preview-viewport-fullscreen" : "",
-            isShortcutsOpen ? "preview-dialog-open" : "",
+            'preview-viewport',
+            isTransparentPreview ? 'preview-viewport-transparent' : '',
+            isFullscreen ? 'preview-viewport-fullscreen' : '',
+            isShortcutsOpen ? 'preview-dialog-open' : '',
           ]
             .filter(Boolean)
-            .join(" ")}
+            .join(' ')}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -906,18 +917,18 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
               transform: `translate(${renderedOffsetX}px, ${renderedOffsetY}px) scale(${scale})`,
             }}
           >
-            {props.outputMode === "svg" ? (
+            {props.outputMode === 'svg' ? (
               <div
                 ref={svgHostRef}
                 className="svg-host"
-                dangerouslySetInnerHTML={{ __html: props.svg ?? "" }}
+                dangerouslySetInnerHTML={{ __html: props.svg ?? '' }}
               />
             ) : (
               <pre
                 ref={textCanvasRef}
                 className="ascii-canvas"
                 style={{ fontFamily: props.monoFontFamily }}
-                dangerouslySetInnerHTML={{ __html: props.asciiHtml ?? "" }}
+                dangerouslySetInnerHTML={{ __html: props.asciiHtml ?? '' }}
               />
             )}
           </div>
@@ -943,7 +954,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
                 className="preview-history-button"
                 disabled={!props.canRedo}
                 aria-label="Redo source edit"
-                title={`Redo source edit (${modifierLabel}${modifierLabel === "⌘" ? "⇧" : "+Shift+"}Z)`}
+                title={`Redo source edit (${modifierLabel}${modifierLabel === '⌘' ? '⇧' : '+Shift+'}Z)`}
                 onClick={props.onRedo}
               >
                 <Redo2 size={18} strokeWidth={1.8} aria-hidden="true" />
@@ -966,13 +977,16 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
                 ref={viewportMenuRef}
                 className="preview-zoom-menu-root"
                 onPointerEnter={(event) => {
-                  if (event.pointerType !== "touch") {
+                  if (event.pointerType !== 'touch') {
                     openViewportMenu();
                   }
                 }}
                 onPointerLeave={scheduleViewportMenuClose}
                 onFocusCapture={() => {
-                  if (window.matchMedia(FINE_POINTER_QUERY).matches) {
+                  if (
+                    window.matchMedia(FINE_POINTER_QUERY).matches &&
+                    !suppressViewportMenuFocusOpen.current
+                  ) {
                     openViewportMenu();
                   }
                 }}
@@ -984,7 +998,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
               >
                 <div
                   className="preview-zoom-menu"
-                  data-state={isViewportMenuOpen ? "open" : "closed"}
+                  data-state={isViewportMenuOpen ? 'open' : 'closed'}
                   role="menu"
                   aria-label="Preview view options"
                   aria-hidden={!isViewportMenuOpen}
@@ -998,7 +1012,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
                     disabled={!hasCurrentOutput}
                     onClick={() => {
                       zoomToOneHundredPercent();
-                      setOpenSurface(null);
+                      closeViewportMenu();
                     }}
                   >
                     <span>Reset to 100%</span>
@@ -1008,14 +1022,17 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
                     type="button"
                     role="menuitem"
                     disabled={!hasCurrentOutput}
-                    onClick={toggleViewportFullscreen}
+                    onClick={() => {
+                      toggleViewportFullscreen();
+                      closeViewportMenu();
+                    }}
                   >
                     {isFullscreen ? (
                       <Minimize2 size={14} strokeWidth={1.7} aria-hidden="true" />
                     ) : (
                       <Maximize2 size={14} strokeWidth={1.7} aria-hidden="true" />
                     )}
-                    <span>{isFullscreen ? "Exit fullscreen" : "Fullscreen"}</span>
+                    <span>{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</span>
                     <kbd>Shift F</kbd>
                   </button>
                   <button
@@ -1024,7 +1041,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
                     disabled={!hasCurrentOutput}
                     onClick={() => {
                       zoomToFit();
-                      setOpenSurface(null);
+                      closeViewportMenu();
                     }}
                   >
                     <Scan size={14} strokeWidth={1.7} aria-hidden="true" />
@@ -1038,23 +1055,24 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
                     disabled={!props.canToggleTransparentBackground}
                     title={
                       props.canToggleTransparentBackground
-                        ? "Toggle transparent background"
-                        : "Transparent background is available for SVG"
+                        ? 'Toggle transparent background'
+                        : 'Transparent background is available for SVG'
                     }
                     onClick={() => {
                       props.onToggleTransparentBackground();
-                      setOpenSurface(null);
+                      closeViewportMenu();
                     }}
                   >
                     <Grid2X2 size={14} strokeWidth={1.7} aria-hidden="true" />
                     <span>Transparent</span>
                     <span className="preview-menu-state" aria-hidden="true">
-                      {props.transparentApplied ? "On" : "Off"}
+                      {props.transparentApplied ? 'On' : 'Off'}
                     </span>
                   </button>
                 </div>
 
                 <button
+                  ref={viewportButtonRef}
                   type="button"
                   className="zoom-percent-button"
                   disabled={!hasCurrentOutput}
@@ -1084,7 +1102,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
               ref={shortcutsButtonRef}
               type="button"
               className="icon-button shortcut-trigger-button"
-              aria-label={isShortcutsOpen ? "Close keyboard shortcuts" : "Open keyboard shortcuts"}
+              aria-label={isShortcutsOpen ? 'Close keyboard shortcuts' : 'Open keyboard shortcuts'}
               aria-haspopup="dialog"
               aria-expanded={isShortcutsOpen}
               title="Keyboard shortcuts (?)"
@@ -1116,7 +1134,7 @@ export default function MermaidPreview(props: MermaidPreviewProps) {
             <div className="feedback-layer feedback-stack">
               {visibleWarnings.map((warning) => (
                 <p key={warning.key} className={`feedback-block tone-${warning.tone}`}>
-                  {warning.tone === "warning" ? (
+                  {warning.tone === 'warning' ? (
                     <AlertTriangle size={12} strokeWidth={1.85} className="feedback-label-icon" />
                   ) : (
                     <Info size={12} strokeWidth={1.85} className="feedback-label-icon" />
