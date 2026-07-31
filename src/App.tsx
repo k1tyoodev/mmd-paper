@@ -1,38 +1,40 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, TransitionEvent } from "react";
-import { AlertCircle, AlertTriangle, Check, Info, Moon, Sun, SunMoon } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, Info, Moon, Sun, SunMoon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, TransitionEvent } from 'react';
+
 import MermaidEditor, {
   type EditorHistoryState,
   type MermaidEditorHandle,
-} from "@/components/MermaidEditor";
-import MermaidPreview from "@/components/MermaidPreview";
-import { preloadRenderer, useBeautifulRenderer } from "@/hooks/useBeautifulRenderer";
-import { DEFAULT_CODE, usePlaygroundState } from "@/hooks/usePlaygroundState";
-import { useSplitPane } from "@/hooks/useSplitPane";
-import { useTextOutputWarnings } from "@/hooks/useTextOutputWarnings";
-import { VERCEL_DIAGRAM_TOKENS, type ColorMode, type ResolvedColorMode } from "@/theme/vercel";
+} from '@/components/MermaidEditor';
+import MermaidPreview from '@/components/MermaidPreview';
+import { preloadRenderer, useBeautifulRenderer } from '@/hooks/useBeautifulRenderer';
+import { DEFAULT_CODE, usePlaygroundState } from '@/hooks/usePlaygroundState';
+import { useSplitPane } from '@/hooks/useSplitPane';
+import { useTextOutputWarnings } from '@/hooks/useTextOutputWarnings';
+import { VERCEL_DIAGRAM_TOKENS, type ColorMode, type ResolvedColorMode } from '@/theme/vercel';
 import type {
   EditorState,
   RenderConfig,
   RenderOutputMode,
   TextColorMode,
-} from "@/types/playground";
-import { TEXT_COLOR_MODE_OPTIONS } from "@/types/playground";
-import { nextColorMode, parseStoredColorMode, resolveColorMode } from "@/utils/colorMode";
-import { resolveUiPaletteWithFallback } from "@/utils/contrast";
+} from '@/types/playground';
+import { TEXT_COLOR_MODE_OPTIONS } from '@/types/playground';
+import { nextColorMode, parseStoredColorMode, resolveColorMode } from '@/utils/colorMode';
+import { resolveUiPaletteWithFallback } from '@/utils/contrast';
+import { resolvePngOutputSize } from '@/utils/pngExport';
 
-type NoticeTone = "info" | "success" | "warning" | "error";
+type NoticeTone = 'info' | 'success' | 'warning' | 'error';
 type NoticeState = {
   message: string;
   tone: NoticeTone;
 };
 type TextCopyPayload = {
-  mode: Exclude<RenderOutputMode, "svg">;
+  mode: Exclude<RenderOutputMode, 'svg'>;
   colorMode: TextColorMode;
 };
-type MobilePane = "editor" | "preview";
+type MobilePane = 'editor' | 'preview';
 
-const THEME_STORAGE_KEY = "mmd-paper-theme";
+const THEME_STORAGE_KEY = 'mmd-paper-theme';
 const SPLIT_DIVIDER_TRACK_PX = 10;
 const HIDDEN_DIVIDER_TRACK_PX = 12;
 const WORKSPACE_ANIMATION_SETTLE_MS = 260;
@@ -45,34 +47,34 @@ const BASE_FONT_FAMILY =
 // Same stylesheet as the font link in index.html; fetched to parse unicode-range
 // data for text-output warnings.
 const TEXT_OUTPUT_FONTS_CSS_URL =
-  "https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Sans+Symbols+2&display=swap";
+  'https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Sans+Symbols+2&display=swap';
 
 function getSettledWorkspaceMode(
-  mode: EditorState["workspaceMode"],
-): EditorState["workspaceMode"] | null {
-  if (mode === "collapsing-editor") {
-    return "editor-hidden";
+  mode: EditorState['workspaceMode'],
+): EditorState['workspaceMode'] | null {
+  if (mode === 'collapsing-editor') {
+    return 'editor-hidden';
   }
-  if (mode === "collapsing-preview") {
-    return "preview-hidden";
+  if (mode === 'collapsing-preview') {
+    return 'preview-hidden';
   }
-  if (mode === "restoring-editor" || mode === "restoring-preview") {
-    return "split";
+  if (mode === 'restoring-editor' || mode === 'restoring-preview') {
+    return 'split';
   }
 
   return null;
 }
 
 function getWorkspaceTracks(
-  mode: EditorState["workspaceMode"],
+  mode: EditorState['workspaceMode'],
   ratio: number,
 ): [string, string, string] {
-  if (mode === "editor-hidden" || mode === "collapsing-editor") {
-    return ["0px", `${HIDDEN_DIVIDER_TRACK_PX}px`, `calc(100% - ${HIDDEN_DIVIDER_TRACK_PX}px)`];
+  if (mode === 'editor-hidden' || mode === 'collapsing-editor') {
+    return ['0px', `${HIDDEN_DIVIDER_TRACK_PX}px`, `calc(100% - ${HIDDEN_DIVIDER_TRACK_PX}px)`];
   }
 
-  if (mode === "preview-hidden" || mode === "collapsing-preview") {
-    return [`calc(100% - ${HIDDEN_DIVIDER_TRACK_PX}px)`, `${HIDDEN_DIVIDER_TRACK_PX}px`, "0px"];
+  if (mode === 'preview-hidden' || mode === 'collapsing-preview') {
+    return [`calc(100% - ${HIDDEN_DIVIDER_TRACK_PX}px)`, `${HIDDEN_DIVIDER_TRACK_PX}px`, '0px'];
   }
 
   const normalizedRatio = Math.max(0, Math.min(1, ratio));
@@ -92,19 +94,19 @@ function getInitialColorMode(): ColorMode {
     return parseStoredColorMode(window.localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
     // Ignore storage access failures and fall back to system preference.
-    return "system";
+    return 'system';
   }
 }
 
 function warmupAppFonts(): void {
   void document.fonts.load(`13px ${BASE_FONT_FAMILY}`);
   void document.fonts.load(`13px ${EDITOR_FONT_FAMILY}`);
-  void document.fonts.load(`13px ${TEXT_OUTPUT_FONT_FAMILY}`, "中文▲►●");
+  void document.fonts.load(`13px ${TEXT_OUTPUT_FONT_FAMILY}`, '中文▲►●');
 }
 
 function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
+  const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
   document.body.append(anchor);
@@ -114,15 +116,15 @@ function downloadBlob(filename: string, blob: Blob): void {
 }
 
 function getSvgSize(svg: string): { width: number; height: number } {
-  const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+  const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
   const node = doc.documentElement;
-  const width = Number.parseFloat(node.getAttribute("width") ?? "");
-  const height = Number.parseFloat(node.getAttribute("height") ?? "");
+  const width = Number.parseFloat(node.getAttribute('width') ?? '');
+  const height = Number.parseFloat(node.getAttribute('height') ?? '');
   if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
     return { width, height };
   }
 
-  const viewBox = node.getAttribute("viewBox");
+  const viewBox = node.getAttribute('viewBox');
   if (!viewBox) {
     return { width: 1200, height: 800 };
   }
@@ -153,14 +155,14 @@ async function renderSvgToPngBlob(
   scale = 1,
   background: string | null,
 ): Promise<Blob> {
-  const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
 
   try {
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
-      image.addEventListener("load", () => resolve(), { once: true });
-      image.addEventListener("error", () => reject(new Error("Failed to decode SVG image")), {
+      image.addEventListener('load', () => resolve(), { once: true });
+      image.addEventListener('error', () => reject(new Error('Failed to decode SVG image')), {
         once: true,
       });
       image.src = url;
@@ -169,16 +171,14 @@ async function renderSvgToPngBlob(
     const fallbackSize = getSvgSize(svg);
     const width = Math.max(1, Math.round(image.naturalWidth || fallbackSize.width));
     const height = Math.max(1, Math.round(image.naturalHeight || fallbackSize.height));
-    const normalizedScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
-    const outputWidth = Math.max(1, Math.round(width * normalizedScale));
-    const outputHeight = Math.max(1, Math.round(height * normalizedScale));
-    const canvas = document.createElement("canvas");
+    const { width: outputWidth, height: outputHeight } = resolvePngOutputSize(width, height, scale);
+    const canvas = document.createElement('canvas');
     canvas.width = outputWidth;
     canvas.height = outputHeight;
 
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext('2d');
     if (!context) {
-      throw new Error("Failed to create canvas context");
+      throw new Error('Failed to create canvas context');
     }
 
     if (background) {
@@ -188,11 +188,11 @@ async function renderSvgToPngBlob(
     context.drawImage(image, 0, 0, outputWidth, outputHeight);
 
     const pngBlob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/png");
+      canvas.toBlob(resolve, 'image/png');
     });
 
     if (!pngBlob) {
-      throw new Error("Failed to convert image to PNG");
+      throw new Error('Failed to convert image to PNG');
     }
 
     return pngBlob;
@@ -228,18 +228,18 @@ function Header({
         <button
           type="button"
           className="segmented-button"
-          aria-pressed={mobilePane === "editor"}
-          data-active={mobilePane === "editor"}
-          onClick={() => onMobilePaneChange("editor")}
+          aria-pressed={mobilePane === 'editor'}
+          data-active={mobilePane === 'editor'}
+          onClick={() => onMobilePaneChange('editor')}
         >
           Editor
         </button>
         <button
           type="button"
           className="segmented-button"
-          aria-pressed={mobilePane === "preview"}
-          data-active={mobilePane === "preview"}
-          onClick={() => onMobilePaneChange("preview")}
+          aria-pressed={mobilePane === 'preview'}
+          data-active={mobilePane === 'preview'}
+          onClick={() => onMobilePaneChange('preview')}
         >
           Preview
         </button>
@@ -252,9 +252,9 @@ function Header({
           title={themeLabel}
           onClick={onToggleColorMode}
         >
-          {colorMode === "light" ? (
+          {colorMode === 'light' ? (
             <Sun size={14} strokeWidth={1.7} aria-hidden="true" />
-          ) : colorMode === "dark" ? (
+          ) : colorMode === 'dark' ? (
             <Moon size={14} strokeWidth={1.7} aria-hidden="true" />
           ) : (
             <SunMoon size={14} strokeWidth={1.7} aria-hidden="true" />
@@ -269,9 +269,9 @@ function App() {
   const { state, setState } = usePlaygroundState();
   const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
   const [systemPrefersDark, setSystemPrefersDark] = useState(
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
   );
-  const [mobilePane, setMobilePane] = useState<MobilePane>("preview");
+  const [mobilePane, setMobilePane] = useState<MobilePane>('preview');
   const [notice, setNoticeState] = useState<NoticeState | null>(null);
   const [previewFitRequestId, setPreviewFitRequestId] = useState(0);
   const [editorFocusToEndToken, setEditorFocusToEndToken] = useState(0);
@@ -322,7 +322,7 @@ function App() {
   );
 
   const setWorkspaceMode = useCallback(
-    (value: EditorState["workspaceMode"]): void => {
+    (value: EditorState['workspaceMode']): void => {
       updateState((draft) => {
         draft.workspaceMode = value;
       });
@@ -331,7 +331,7 @@ function App() {
   );
 
   const settleWorkspaceMode = useCallback(
-    (mode: EditorState["workspaceMode"]): void => {
+    (mode: EditorState['workspaceMode']): void => {
       const settledMode = getSettledWorkspaceMode(mode);
       if (!settledMode) {
         return;
@@ -391,11 +391,11 @@ function App() {
     TEXT_OUTPUT_FONTS_CSS_URL,
   );
   const canExportCurrentOutput =
-    state.outputMode === "svg" ? Boolean(renderState.svg) : Boolean(renderState.asciiHtml);
-  const canTogglePreviewTransparency = state.outputMode === "svg";
+    state.outputMode === 'svg' ? Boolean(renderState.svg) : Boolean(renderState.asciiHtml);
+  const canTogglePreviewTransparency = state.outputMode === 'svg';
   const appliedPreviewTransparency = canTogglePreviewTransparency && state.transparent;
 
-  const setNotice = useCallback((message: string, tone: NoticeTone = "info"): void => {
+  const setNotice = useCallback((message: string, tone: NoticeTone = 'info'): void => {
     setNoticeState({ message, tone });
     if (noticeTimer.current !== null) {
       window.clearTimeout(noticeTimer.current);
@@ -411,20 +411,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     function handleSystemColorSchemeChange(event: MediaQueryListEvent): void {
       setSystemPrefersDark(event.matches);
     }
 
-    mediaQuery.addEventListener("change", handleSystemColorSchemeChange);
+    mediaQuery.addEventListener('change', handleSystemColorSchemeChange);
     return () => {
-      mediaQuery.removeEventListener("change", handleSystemColorSchemeChange);
+      mediaQuery.removeEventListener('change', handleSystemColorSchemeChange);
     };
   }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = resolvedColorMode;
-    document.documentElement.classList.toggle("dark", resolvedColorMode === "dark");
+    document.documentElement.classList.toggle('dark', resolvedColorMode === 'dark');
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, colorMode);
     } catch {
@@ -436,7 +436,7 @@ function App() {
     const id = window.setTimeout(() => {
       void preloadRenderer();
     }, 0);
-    if (window.matchMedia("(min-width: 961px)").matches) {
+    if (window.matchMedia('(min-width: 961px)').matches) {
       setEditorFocusToEndToken((value) => value + 1);
     }
     return () => {
@@ -448,7 +448,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (mobilePane === "editor") {
+    if (mobilePane === 'editor') {
       editorRef.current?.layout();
     }
   }, [mobilePane]);
@@ -513,13 +513,13 @@ function App() {
 
     try {
       if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard API unavailable in this browser");
+        throw new Error('Clipboard API unavailable in this browser');
       }
 
       await navigator.clipboard.writeText(svg);
-      setNotice("SVG copied", "success");
+      setNotice('SVG copied', 'success');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Copy failed", "error");
+      setNotice(error instanceof Error ? error.message : 'Copy failed', 'error');
     }
   }
 
@@ -529,8 +529,8 @@ function App() {
       return;
     }
 
-    downloadBlob("mmd-paper.svg", new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-    setNotice("SVG downloaded", "success");
+    downloadBlob('mmd-paper.svg', new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    setNotice('SVG downloaded', 'success');
   }
 
   async function copyPng(): Promise<void> {
@@ -540,19 +540,19 @@ function App() {
     }
 
     try {
-      if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
-        throw new Error("Clipboard image copy is unavailable in this browser");
+      if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+        throw new Error('Clipboard image copy is unavailable in this browser');
       }
 
       const pngBlob = await renderSvgToPngBlob(svg, 2, state.transparent ? null : tokens.bg);
       await navigator.clipboard.write([
         new ClipboardItem({
-          "image/png": pngBlob,
+          'image/png': pngBlob,
         }),
       ]);
-      setNotice("PNG copied", "success");
+      setNotice('PNG copied', 'success');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Copy failed", "error");
+      setNotice(error instanceof Error ? error.message : 'Copy failed', 'error');
     }
   }
 
@@ -564,10 +564,10 @@ function App() {
 
     try {
       const pngBlob = await renderSvgToPngBlob(svg, 2, state.transparent ? null : tokens.bg);
-      downloadBlob("mmd-paper.png", pngBlob);
-      setNotice("PNG downloaded", "success");
+      downloadBlob('mmd-paper.png', pngBlob);
+      setNotice('PNG downloaded', 'success');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "PNG export failed", "error");
+      setNotice(error instanceof Error ? error.message : 'PNG export failed', 'error');
     }
   }
 
@@ -579,48 +579,48 @@ function App() {
 
     try {
       if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard API unavailable in this browser");
+        throw new Error('Clipboard API unavailable in this browser');
       }
 
       await navigator.clipboard.writeText(text);
-      const outputLabel = payload.mode === "unicode" ? "Unicode" : "ASCII";
-      setNotice(`${outputLabel} ${getTextColorModeLabel(payload.colorMode)} copied`, "success");
+      const outputLabel = payload.mode === 'unicode' ? 'Unicode' : 'ASCII';
+      setNotice(`${outputLabel} ${getTextColorModeLabel(payload.colorMode)} copied`, 'success');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Copy failed", "error");
+      setNotice(error instanceof Error ? error.message : 'Copy failed', 'error');
     }
   }
 
   const appStyle = {
-    "--t-bg": appliedUiPalette.bg,
-    "--t-fg": appliedUiPalette.fg,
-    "--t-accent": appliedUiPalette.accent,
+    '--t-bg': appliedUiPalette.bg,
+    '--t-fg': appliedUiPalette.fg,
+    '--t-accent': appliedUiPalette.accent,
   } as CSSProperties;
   const [editorTrack, dividerTrack, previewTrack] = getWorkspaceTracks(
     state.workspaceMode,
     state.splitRatio,
   );
   const workspaceStyle = {
-    "--editor-track": editorTrack,
-    "--divider-track": dividerTrack,
-    "--preview-track": previewTrack,
+    '--editor-track': editorTrack,
+    '--divider-track': dividerTrack,
+    '--preview-track': previewTrack,
   } as CSSProperties;
   const workspaceClassName = [
-    "editor-preview-workspace",
+    'editor-preview-workspace',
     `workspace-${state.workspaceMode}`,
-    pendingCollapse ? `pending-collapse-${pendingCollapse}` : "",
-    isDragging ? "workspace-dragging" : "",
+    pendingCollapse ? `pending-collapse-${pendingCollapse}` : '',
+    isDragging ? 'workspace-dragging' : '',
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(' ');
   const dividerLabel =
-    state.workspaceMode === "editor-hidden" || state.workspaceMode === "collapsing-editor"
-      ? "Restore editor pane"
-      : state.workspaceMode === "preview-hidden" || state.workspaceMode === "collapsing-preview"
-        ? "Restore preview pane"
-        : "Resize editor and preview panes";
+    state.workspaceMode === 'editor-hidden' || state.workspaceMode === 'collapsing-editor'
+      ? 'Restore editor pane'
+      : state.workspaceMode === 'preview-hidden' || state.workspaceMode === 'collapsing-preview'
+        ? 'Restore preview pane'
+        : 'Resize editor and preview panes';
 
   function handleWorkspaceTransitionEnd(event: TransitionEvent<HTMLElement>): void {
-    if (event.target !== event.currentTarget || event.propertyName !== "grid-template-columns") {
+    if (event.target !== event.currentTarget || event.propertyName !== 'grid-template-columns') {
       return;
     }
 
@@ -659,7 +659,7 @@ function App() {
           </div>
 
           <div
-            className={`divider ${isDragging ? "dragging" : ""}`}
+            className={`divider ${isDragging ? 'dragging' : ''}`}
             role="separator"
             aria-label={dividerLabel}
             aria-orientation="vertical"
@@ -676,7 +676,7 @@ function App() {
             <MermaidPreview
               outputMode={state.outputMode}
               fitRequestId={previewFitRequestId}
-              isEmpty={state.code.trim() === ""}
+              isEmpty={state.code.trim() === ''}
               monoFontFamily={TEXT_OUTPUT_FONT_FAMILY}
               textWarnings={textOutputWarnings}
               svg={renderState.svg}
@@ -708,16 +708,16 @@ function App() {
 
       {notice ? (
         <div className={`toast toast-${notice.tone}`} role="status">
-          {notice.tone === "success" ? (
+          {notice.tone === 'success' ? (
             <Check size={14} strokeWidth={2} aria-hidden="true" />
           ) : null}
-          {notice.tone === "error" ? (
+          {notice.tone === 'error' ? (
             <AlertCircle size={14} strokeWidth={2} aria-hidden="true" />
           ) : null}
-          {notice.tone === "warning" ? (
+          {notice.tone === 'warning' ? (
             <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" />
           ) : null}
-          {notice.tone === "info" ? <Info size={14} strokeWidth={2} aria-hidden="true" /> : null}
+          {notice.tone === 'info' ? <Info size={14} strokeWidth={2} aria-hidden="true" /> : null}
           {notice.message}
         </div>
       ) : null}

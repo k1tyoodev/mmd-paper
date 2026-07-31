@@ -5,18 +5,21 @@
     <script>
       // Keep in sync with src/App.tsx getInitialColorMode.
       try {
-        var t = localStorage.getItem("mmd-paper-theme");
-        if (t !== "light" && t !== "dark" && t !== "system") {
-          t = "system";
+        var t = 'system';
+        try {
+          t = localStorage.getItem('mmd-paper-theme');
+        } catch (e) {}
+        if (t !== 'light' && t !== 'dark' && t !== 'system') {
+          t = 'system';
         }
         var resolved =
-          t === "system"
-            ? matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light"
+          t === 'system'
+            ? matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
             : t;
         document.documentElement.dataset.theme = resolved;
-        document.documentElement.classList.toggle("dark", resolved === "dark");
+        document.documentElement.classList.toggle('dark', resolved === 'dark');
       } catch (e) {}
     </script>
     <link rel="icon" href="https://mermaid.ai/open-source/favicon.ico" />
