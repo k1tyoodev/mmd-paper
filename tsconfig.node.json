@@ -1,6 +1,7 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
   "include": [
+    "build/**/*.ts",
     "vite.config.ts",
     "test/**/*.ts",
     "src/types/**/*.ts",

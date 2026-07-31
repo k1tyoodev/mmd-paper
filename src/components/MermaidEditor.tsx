@@ -1,24 +1,20 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import type { HighlighterGeneric } from "@shikijs/core";
-import type { editor as MonacoEditorNs } from "monaco-editor";
-import CssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
-import HtmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
-import JsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
-import TsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
-import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+import type { HighlighterGeneric } from '@shikijs/core';
+import type { editor as MonacoEditorNs } from 'monaco-editor';
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+
 import {
   MONACO_THEME_BY_SCHEME,
   SHIKI_MONACO_THEMES,
   type MonacoShikiTheme,
-} from "@/constants/monacoThemes";
-import { preloadShikiEngine } from "@/utils/shikiEngine";
+} from '@/constants/monacoThemes';
+import { preloadShikiEngine } from '@/utils/shikiEngine';
 
-const MERMAID_LANGUAGE_ID = "mermaid";
+const MERMAID_LANGUAGE_ID = 'mermaid';
 
-type MonacoModule = typeof import("monaco-editor");
+type MonacoModule = typeof import('monaco-editor');
 type MonacoEditorInstance = MonacoEditorNs.IStandaloneCodeEditor;
-type ShikiHighlighter = HighlighterGeneric<"mermaid", MonacoShikiTheme>;
-type WorkerConstructor = new () => Worker;
+type ShikiHighlighter = HighlighterGeneric<'mermaid', MonacoShikiTheme>;
 
 declare global {
   interface Window {
@@ -45,7 +41,7 @@ type MermaidEditorProps = {
   value: string;
   fontSize: number;
   fontFamily: string;
-  colorScheme: "light" | "dark";
+  colorScheme: 'light' | 'dark';
   surfaceColor: string;
   focusToEndToken: number;
   onChange: (value: string) => void;
@@ -58,32 +54,17 @@ let highlighterPromise: Promise<ShikiHighlighter> | null = null;
 let mermaidLanguageConfigured = false;
 
 const MONACO_THEME_LOADERS: Record<MonacoShikiTheme, () => Promise<{ default: unknown }>> = {
-  "one-light": () => import("@shikijs/themes/one-light"),
-  "one-dark-pro": () => import("@shikijs/themes/one-dark-pro"),
-};
-
-const MONACO_WORKERS: Record<string, WorkerConstructor> = {
-  css: CssWorker,
-  handlebars: HtmlWorker,
-  html: HtmlWorker,
-  javascript: TsWorker,
-  json: JsonWorker,
-  less: CssWorker,
-  razor: HtmlWorker,
-  scss: CssWorker,
-  typescript: TsWorker,
+  'one-light': () => import('@shikijs/themes/one-light'),
+  'one-dark-pro': () => import('@shikijs/themes/one-dark-pro'),
 };
 
 function ensureMonacoEnvironment(): void {
   window.MonacoEnvironment = {
-    getWorker: (_workerId, label) => {
-      const WorkerClass = MONACO_WORKERS[label] ?? EditorWorker;
-      return new WorkerClass();
-    },
+    getWorker: () => new EditorWorker(),
   };
 }
 
-function getMonacoTheme(colorScheme: "light" | "dark"): MonacoShikiTheme {
+function getMonacoTheme(colorScheme: 'light' | 'dark'): MonacoShikiTheme {
   return MONACO_THEME_BY_SCHEME[colorScheme];
 }
 
@@ -98,22 +79,22 @@ function ensureMermaidLanguageConfigured(monacoModule: MonacoModule): void {
   }
 
   languages.setLanguageConfiguration(MERMAID_LANGUAGE_ID, {
-    comments: { lineComment: "%%" },
+    comments: { lineComment: '%%' },
     brackets: [
-      ["[", "]"],
-      ["(", ")"],
-      ["{", "}"],
+      ['[', ']'],
+      ['(', ')'],
+      ['{', '}'],
     ],
     autoClosingPairs: [
-      { open: "[", close: "]" },
-      { open: "(", close: ")" },
-      { open: "{", close: "}" },
+      { open: '[', close: ']' },
+      { open: '(', close: ')' },
+      { open: '{', close: '}' },
       { open: '"', close: '"' },
     ],
     surroundingPairs: [
-      { open: "[", close: "]" },
-      { open: "(", close: ")" },
-      { open: "{", close: "}" },
+      { open: '[', close: ']' },
+      { open: '(', close: ')' },
+      { open: '{', close: '}' },
       { open: '"', close: '"' },
     ],
   });
@@ -129,13 +110,13 @@ async function loadShikiHighlighter(): Promise<ShikiHighlighter> {
   if (!highlighterPromise) {
     highlighterPromise = (async () => {
       const [{ createBundledHighlighter }, engine] = await Promise.all([
-        import("@shikijs/core"),
+        import('@shikijs/core'),
         preloadShikiEngine(),
       ]);
 
       const createHighlighter = createBundledHighlighter({
         langs: {
-          mermaid: () => import("@shikijs/langs/mermaid"),
+          mermaid: () => import('@shikijs/langs/mermaid'),
         },
         themes: MONACO_THEME_LOADERS as Record<MonacoShikiTheme, never>,
         engine: () => engine,
@@ -163,9 +144,9 @@ async function loadMonacoRuntime(): Promise<MonacoModule> {
     ensureMonacoEnvironment();
 
     const [monaco, { shikiToMonaco }, { default: mermaidLanguages }] = await Promise.all([
-      import("monaco-editor"),
-      import("@shikijs/monaco"),
-      import("@shikijs/langs/mermaid"),
+      import('monaco-editor'),
+      import('@shikijs/monaco'),
+      import('@shikijs/langs/mermaid'),
     ]);
 
     ensureMermaidLanguageConfigured(monaco);
@@ -173,15 +154,15 @@ async function loadMonacoRuntime(): Promise<MonacoModule> {
     if (!highlighter) {
       const [mermaidGrammar] = mermaidLanguages;
       if (!mermaidGrammar) {
-        throw new Error("Failed to load Mermaid grammar");
+        throw new Error('Failed to load Mermaid grammar');
       }
 
       highlighter = await loadShikiHighlighter();
       await highlighter.loadLanguage({
         ...mermaidGrammar,
-        scopeName: "source.mermaid",
+        scopeName: 'source.mermaid',
         injectionSelector: undefined,
-        patterns: [{ include: "#mermaid" }],
+        patterns: [{ include: '#mermaid' }],
       } as never);
       shikiToMonaco(highlighter, monaco);
     }
@@ -244,13 +225,13 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
       });
     };
 
-    const runHistoryCommand = (command: "redo" | "undo"): void => {
+    const runHistoryCommand = (command: 'redo' | 'undo'): void => {
       const editor = editorRef.current;
       if (!editor) {
         return;
       }
 
-      editor.trigger("preview-toolbar", command, null);
+      editor.trigger('preview-toolbar', command, null);
       editor.focus();
     };
 
@@ -258,8 +239,8 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
       focus: focusEditor,
       focusToEnd: focusEditorToEnd,
       layout: layoutEditor,
-      redo: () => runHistoryCommand("redo"),
-      undo: () => runHistoryCommand("undo"),
+      redo: () => runHistoryCommand('redo'),
+      undo: () => runHistoryCommand('undo'),
     }));
 
     useEffect(() => {
@@ -294,7 +275,7 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
             lineNumbersMinChars: 3,
-            wordWrap: "on",
+            wordWrap: 'on',
             scrollbar: {
               verticalScrollbarSize: 8,
               horizontalScrollbarSize: 8,
@@ -334,7 +315,7 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
               editor.layout();
             });
           };
-          document.fonts.addEventListener("loadingdone", fontLoadingDoneHandler);
+          document.fonts.addEventListener('loadingdone', fontLoadingDoneHandler);
           void document.fonts.ready.then(fontLoadingDoneHandler);
         } catch (error) {
           setInitError(error instanceof Error ? error.message : String(error));
@@ -346,7 +327,7 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
       return () => {
         mounted = false;
         if (fontLoadingDoneHandler) {
-          document.fonts.removeEventListener("loadingdone", fontLoadingDoneHandler);
+          document.fonts.removeEventListener('loadingdone', fontLoadingDoneHandler);
         }
         modelDisposable?.dispose();
         editorRef.current?.dispose();
@@ -407,7 +388,7 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
         </div>
         <div
           className="editor-shell"
-          style={{ "--editor-bg": props.surfaceColor } as React.CSSProperties}
+          style={{ '--editor-bg': props.surfaceColor } as React.CSSProperties}
           tabIndex={-1}
           onPointerDownCapture={handleRootPointerDown}
         >
@@ -415,11 +396,11 @@ const MermaidEditor = forwardRef<MermaidEditorHandle, MermaidEditorProps>(
           {!isReady && !initError ? (
             <div className="editor-overlay" aria-busy="true" aria-live="polite">
               <div className="skeleton-stack" aria-hidden="true">
-                <span style={{ width: "44%" }} />
-                <span style={{ width: "66%" }} />
-                <span style={{ width: "52%" }} />
-                <span style={{ width: "72%" }} />
-                <span style={{ width: "58%" }} />
+                <span style={{ width: '44%' }} />
+                <span style={{ width: '66%' }} />
+                <span style={{ width: '52%' }} />
+                <span style={{ width: '72%' }} />
+                <span style={{ width: '58%' }} />
               </div>
             </div>
           ) : null}
