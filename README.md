@@ -1,11 +1,14 @@
-# Mermaid Playground
+# MMD Paper
 
-A live playground for Mermaid diagrams, built with React 19, TypeScript,
-Tailwind CSS 4, Vite+, Oxlint, and Oxfmt.
+A minimal Mermaid diagram editor.
+
+Paste Mermaid code, see the diagram. Export to SVG, PNG, Unicode, or ASCII.
+
+Built with React 19, TypeScript, Tailwind CSS 4, Monaco Editor, Shiki, and beautiful-mermaid.
 
 ## Run
 
 ```bash
-vp install
-vp dev
+pnpm install
+pnpm dev
 ```
