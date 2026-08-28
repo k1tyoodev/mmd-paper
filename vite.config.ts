@@ -4,21 +4,6 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 
-import { copySitesOutput } from './build/sitesOutput';
-
-const projectRoot = fileURLToPath(new URL('.', import.meta.url));
-const outputRoot = fileURLToPath(new URL('./dist', import.meta.url));
-
-function sitesOutput() {
-  return {
-    name: 'sites-output',
-    apply: 'build' as const,
-    async closeBundle() {
-      await copySitesOutput({ projectRoot, outputRoot });
-    },
-  };
-}
-
 // https://vite.dev/config/
 export default defineConfig({
   lint: {
@@ -91,9 +76,9 @@ export default defineConfig({
       },
     ],
   },
-  plugins: [tailwindcss(), react(), sitesOutput()],
+  plugins: [tailwindcss(), react()],
   build: {
-    outDir: 'dist/client',
+    outDir: 'dist',
     // Monaco + diagram runtime are intentionally split into dedicated async chunks.
     chunkSizeWarningLimit: 7000,
     rolldownOptions: {
